@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import BookshelfPage from "./pages/BookshelfPage";
 import ReadingLogPage from "./pages/ReadingLogPage";
 import BookReviewPage from "./pages/BookReviewPage";
+import MembershipPage from "./pages/MembershipPage";
 
 // Admin Pages
 import AdminLayout from "./layouts/AdminLayout";
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/books/:id/review" element={<BookReviewPage />} />
           <Route path="/bookshelf" element={<BookshelfPage />} />
           <Route path="/reading-log" element={<ReadingLogPage />} />
+          <Route path="/membership" element={<MembershipPage />} />
           <Route path="/login" element={<LoginPage />} />
           
           {/* Admin Routes */}

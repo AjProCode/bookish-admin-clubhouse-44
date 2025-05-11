@@ -46,6 +46,9 @@ const Navbar: React.FC = () => {
                 <Link to="/reading-log" className="w-full">Reading Log</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/membership" className="w-full">Membership</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/admin" className="w-full">Admin</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -59,6 +62,7 @@ const Navbar: React.FC = () => {
             <Link to="/books" className="text-gray-700 hover:text-bookclub-primary transition-colors">Browse Books</Link>
             <Link to="/bookshelf" className="text-gray-700 hover:text-bookclub-primary transition-colors">My Bookshelf</Link>
             <Link to="/reading-log" className="text-gray-700 hover:text-bookclub-primary transition-colors">Reading Log</Link>
+            <Link to="/membership" className="text-gray-700 hover:text-bookclub-primary transition-colors">Membership</Link>
             <Link to="/admin" className="text-gray-700 hover:text-bookclub-primary transition-colors">Admin</Link>
             <Button variant="outline" size="sm" className="flex items-center gap-2" asChild>
               <Link to="/login">

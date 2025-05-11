@@ -56,3 +56,16 @@ export interface UserReadingLog {
   pagesRead: number;
   notes?: string;
 }
+
+export interface MembershipPlan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration: number; // in months
+  deliveryFrequency: 'monthly' | 'quarterly';
+  booksPerDelivery: number;
+  features: string[];
+  isPopular?: boolean;
+  isActive: boolean;
+}

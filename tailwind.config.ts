@@ -64,12 +64,12 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				bookclub: {
-					primary: '#7E69AB',
-					secondary: '#FEC6A1',
-					accent: '#E5DEFF',
-					muted: '#F1F0FB',
-					background: '#FFFFFF',
-					text: '#333333',
+					primary: '#8B5CF6', // Updated from #7E69AB to a brighter purple
+					secondary: '#FEC88A', // Slightly adjusted orange
+					accent: '#E5DEFF', // Kept the same
+					muted: '#F1F0FB', // Kept the same
+					background: '#FFFFFF', // Kept white
+					text: '#333333', // Kept the same dark text
 				}
 			},
 			borderRadius: {
