@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,7 +29,9 @@ const MembershipStatusBar: React.FC = () => {
         setLoading(true);
         
         // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: userData } = await supabase.auth.getUser();
+        const user = userData.user;
+        
         if (!user) {
           setLoading(false);
           return;
@@ -82,12 +85,12 @@ const MembershipStatusBar: React.FC = () => {
     fetchProfile();
     
     // Subscribe to auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+    const { subscription } = supabase.auth.onAuthStateChange(() => {
       fetchProfile();
     });
     
     return () => {
-      authListener?.subscription?.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -103,7 +106,7 @@ const MembershipStatusBar: React.FC = () => {
   
   if (loading) {
     return (
-      <Card className="mb-6 bg-gray-50">
+      <Card className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50">
         <CardContent className="flex items-center justify-between p-4">
           <div>
             <p className="font-medium">Loading membership status...</p>
@@ -115,13 +118,13 @@ const MembershipStatusBar: React.FC = () => {
   
   if (!profile) {
     return (
-      <Card className="mb-6 bg-gray-50 border-dashed">
+      <Card className="mb-6 bg-gradient-to-r from-purple-100 to-indigo-100 border-dashed border-purple-300">
         <CardContent className="flex items-center justify-between p-4">
           <div>
-            <p className="font-medium">Join Skillbag to access exclusive features</p>
-            <p className="text-sm text-gray-500">Sign in or create an account to get started</p>
+            <p className="font-medium text-purple-900">Join Skillbag to access exclusive features</p>
+            <p className="text-sm text-purple-700">Sign in or create an account to get started</p>
           </div>
-          <Button onClick={handleLogin}>Sign In</Button>
+          <Button onClick={handleLogin} className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700">Sign In</Button>
         </CardContent>
       </Card>
     );
@@ -129,32 +132,32 @@ const MembershipStatusBar: React.FC = () => {
 
   if (!profile.subscription || profile.subscription.status !== 'active') {
     return (
-      <Card className="mb-6 bg-gray-50">
+      <Card className="mb-6 bg-gradient-to-r from-orange-50 to-amber-100">
         <CardContent className="flex items-center justify-between p-4">
           <div>
-            <p className="font-medium">You don't have an active subscription</p>
-            <p className="text-sm text-gray-500">Upgrade to receive our monthly book deliveries</p>
+            <p className="font-medium text-orange-900">You don't have an active subscription</p>
+            <p className="text-sm text-orange-700">Upgrade to receive our monthly book deliveries</p>
           </div>
-          <Button onClick={handleUpgrade}>View Plans</Button>
+          <Button onClick={handleUpgrade} className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700">View Plans</Button>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="mb-6 bg-green-50 border-green-200">
+    <Card className="mb-6 bg-gradient-to-r from-green-50 to-emerald-100 border-green-200">
       <CardContent className="flex items-center justify-between p-4">
         <div>
-          <p className="font-medium text-green-800">
+          <p className="font-medium text-emerald-800">
             Active {profile.subscription.plan.charAt(0).toUpperCase() + profile.subscription.plan.slice(1)} Subscription
           </p>
-          <p className="text-sm text-green-700">
+          <p className="text-sm text-emerald-700">
             Valid until {formatDate(profile.subscription.end_date)}
             {profile.subscription.next_delivery_date && 
               ` • Next delivery: ${formatDate(profile.subscription.next_delivery_date)}`}
           </p>
         </div>
-        <Button variant="outline" className="border-green-500 text-green-500" onClick={handleUpgrade}>
+        <Button variant="outline" className="border-emerald-500 text-emerald-600 hover:bg-emerald-50" onClick={handleUpgrade}>
           Manage Subscription
         </Button>
       </CardContent>

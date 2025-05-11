@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -11,7 +12,7 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check } from 'lucide-react';
+import { Check, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MembershipStatusBar from '@/components/MembershipStatusBar';
 import { useNavigate } from 'react-router-dom';
@@ -122,27 +123,34 @@ interface PlanProps {
 const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan, loading }) => {
   return (
     <Card className={cn(
-      "flex flex-col h-full transition-all duration-200 hover:shadow-lg",
-      plan.isPopular && "border-bookclub-primary border-2",
-      isCurrentPlan && "border-green-500 border-2"
+      "flex flex-col h-full transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1",
+      plan.isPopular && "border-purple-500 border-2 bg-gradient-to-b from-purple-50 to-white",
+      isCurrentPlan && "border-emerald-500 border-2 bg-gradient-to-b from-emerald-50 to-white"
     )}>
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-4 relative overflow-hidden">
         {plan.isPopular && (
-          <Badge className="self-start mb-2 bg-bookclub-primary text-white">
+          <div className="absolute top-0 right-0 w-32 transform translate-x-8 -translate-y-8">
+            <div className="bg-purple-500 text-white py-1 px-6 transform rotate-45 shadow-md text-center text-xs font-bold">
+              POPULAR
+            </div>
+          </div>
+        )}
+        {plan.isPopular && (
+          <Badge className="self-start mb-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-none">
             Recommended
           </Badge>
         )}
         {isCurrentPlan && (
-          <Badge className="self-start mb-2 bg-green-500 text-white">
+          <Badge className="self-start mb-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white border-none">
             Your Plan
           </Badge>
         )}
-        <CardTitle className="text-2xl">{plan.name}</CardTitle>
-        <CardDescription className="text-sm">{plan.description}</CardDescription>
+        <CardTitle className="text-2xl text-purple-800">{plan.name}</CardTitle>
+        <CardDescription className="text-sm text-purple-600">{plan.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex-1">
         <div className="mb-4">
-          <span className="text-3xl font-bold text-bookclub-primary">₹{plan.price}</span>
+          <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">₹{plan.price}</span>
           <span className="text-gray-500 ml-2">
             for {plan.duration} {plan.duration === 1 ? 'month' : 'months'}
           </span>
@@ -150,7 +158,7 @@ const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan, loadi
         <ul className="space-y-2">
           {plan.features.map((feature, index) => (
             <li key={index} className="flex items-center gap-2">
-              <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+              <Check className="h-5 w-5 text-emerald-500 flex-shrink-0" />
               <span className="text-gray-700">{feature}</span>
             </li>
           ))}
@@ -158,7 +166,11 @@ const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan, loadi
       </CardContent>
       <CardFooter className="pt-4">
         <Button 
-          className="w-full" 
+          className={cn(
+            "w-full",
+            plan.isPopular && !isCurrentPlan && "bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white",
+            isCurrentPlan && "border-emerald-500 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+          )}
           variant={isCurrentPlan ? "outline" : (plan.isPopular ? "default" : "outline")}
           onClick={() => onSubscribe(plan.id)}
           disabled={isCurrentPlan || loading}
@@ -170,6 +182,218 @@ const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan, loadi
   );
 };
 
+// Create our Edge Function for Stripe integration
+const createCheckoutEdgeFunction = `
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@14.21.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { planId } = await req.json();
+    
+    if (!planId) {
+      throw new Error("Missing plan ID");
+    }
+
+    // Create Supabase client for auth
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const supabaseAdminKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error("Missing Supabase environment variables");
+    }
+    
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+
+    // Get user from auth header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("No authorization header");
+    }
+    
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError || !userData.user) {
+      throw new Error("Invalid user token");
+    }
+    
+    const user = userData.user;
+    
+    // Initialize Stripe
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeSecretKey) {
+      throw new Error("Missing Stripe secret key");
+    }
+    
+    const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
+    
+    // Check if user already has a Stripe customer ID
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("id", user.id)
+      .single();
+    
+    let customerId = profile?.stripe_customer_id;
+    
+    // If no customer ID found, create a new customer
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          supabase_user_id: user.id
+        }
+      });
+      
+      customerId = customer.id;
+      
+      // Update the profile with the new customer ID
+      const supabaseAdmin = createClient(supabaseUrl, supabaseAdminKey, {
+        auth: { persistSession: false }
+      });
+      
+      await supabaseAdmin
+        .from("profiles")
+        .update({ stripe_customer_id: customerId })
+        .eq("id", user.id);
+    }
+    
+    // Map plan IDs to prices
+    const planPriceMap = {
+      monthly: "price_monthly",
+      quarterly: "price_quarterly",
+      biannual: "price_biannual",
+      annual: "price_annual"
+    };
+    
+    // For demo purposes, we're using a test price
+    // In a real implementation, you would fetch actual price IDs from your Stripe account
+    const priceId = planPriceMap[planId] || "price_monthly";
+    
+    // Create a new checkout session
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: "subscription",
+      success_url: \`\${req.headers.get("origin") || "https://your-app-url.com"}/membership?success=true\`,
+      cancel_url: \`\${req.headers.get("origin") || "https://your-app-url.com"}/membership?canceled=true\`,
+    });
+
+    return new Response(JSON.stringify({ url: session.url }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+  } catch (error) {
+    console.error("Checkout error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
+  }
+});
+`;
+
+// Create our customer portal Edge Function
+const customerPortalEdgeFunction = `
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@14.21.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Create Supabase client for auth
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error("Missing Supabase environment variables");
+    }
+    
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+
+    // Get user from auth header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("No authorization header");
+    }
+    
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError || !userData.user) {
+      throw new Error("Invalid user token");
+    }
+    
+    const user = userData.user;
+    
+    // Initialize Stripe
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeSecretKey) {
+      throw new Error("Missing Stripe secret key");
+    }
+    
+    const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
+    
+    // Get customer ID
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("id", user.id)
+      .single();
+    
+    if (profileError || !profile?.stripe_customer_id) {
+      throw new Error("No Stripe customer found");
+    }
+    
+    // Create customer portal session
+    const session = await stripe.billingPortal.sessions.create({
+      customer: profile.stripe_customer_id,
+      return_url: \`\${req.headers.get("origin") || "https://your-app-url.com"}/membership\`,
+    });
+
+    return new Response(JSON.stringify({ url: session.url }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+  } catch (error) {
+    console.error("Customer portal error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
+  }
+});
+`;
+
 const MembershipPage: React.FC = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -180,7 +404,8 @@ const MembershipPage: React.FC = () => {
     const fetchProfile = async () => {
       try {
         // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: userData } = await supabase.auth.getUser();
+        const user = userData.user;
         if (!user) {
           return;
         }
@@ -218,19 +443,20 @@ const MembershipPage: React.FC = () => {
     fetchProfile();
     
     // Subscribe to auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+    const { subscription } = supabase.auth.onAuthStateChange(() => {
       fetchProfile();
     });
     
     return () => {
-      authListener?.subscription?.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
   
   const handleSubscribe = async (planId: string) => {
     try {
       // Check if user is authenticated
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData.session;
       
       if (!session) {
         toast({
@@ -310,12 +536,12 @@ const MembershipPage: React.FC = () => {
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <main className="flex-grow">
-        <section className="pt-16 pb-10 bg-gradient-to-b from-bookclub-accent to-white">
+        <section className="pt-16 pb-10 bg-gradient-to-b from-purple-100 via-indigo-100 to-white">
           <div className="container mx-auto px-4 text-center">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-800 via-indigo-700 to-purple-800 bg-clip-text text-transparent">
               Develop a Love for Reading in Your Child
             </h1>
-            <p className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto mb-8">
+            <p className="text-lg md:text-xl text-purple-700 max-w-3xl mx-auto mb-8">
               Join our Book Club for ages 7 and above, where we make reading fun, engaging, and rewarding!
             </p>
           </div>
@@ -325,47 +551,52 @@ const MembershipPage: React.FC = () => {
           <MembershipStatusBar />
           
           <div className="max-w-4xl mx-auto mb-16">
-            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center">How It Works</h2>
+            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center text-purple-800">How It Works</h2>
             <div className="grid md:grid-cols-2 gap-8">
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <h3 className="text-xl font-semibold mb-4">Personalized Experience</h3>
+              <div className="bg-white p-6 rounded-lg shadow-md border border-purple-200 transform transition-transform hover:scale-105">
+                <h3 className="text-xl font-semibold mb-4 text-purple-700">Personalized Experience</h3>
                 <ul className="space-y-3">
                   <li className="flex gap-3">
-                    <div className="bg-bookclub-primary text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">1</div>
-                    <p>Our experts carefully select books tailored to your child's interests and reading level</p>
+                    <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">1</div>
+                    <p className="text-purple-900">Our experts carefully select books tailored to your child's interests and reading level</p>
                   </li>
                   <li className="flex gap-3">
-                    <div className="bg-bookclub-primary text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">2</div>
-                    <p>Every month, 3 exciting books will be delivered right to your doorstep</p>
+                    <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">2</div>
+                    <p className="text-purple-900">Every month, 3 exciting books will be delivered right to your doorstep</p>
                   </li>
                   <li className="flex gap-3">
-                    <div className="bg-bookclub-primary text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">3</div>
-                    <p>Your child will have ample time to enjoy and complete the books</p>
+                    <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">3</div>
+                    <p className="text-purple-900">Your child will have ample time to enjoy and complete the books</p>
                   </li>
                 </ul>
               </div>
               
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <h3 className="text-xl font-semibold mb-4">Ongoing Support</h3>
+              <div className="bg-white p-6 rounded-lg shadow-md border border-purple-200 transform transition-transform hover:scale-105">
+                <h3 className="text-xl font-semibold mb-4 text-purple-700">Ongoing Support</h3>
                 <ul className="space-y-3">
                   <li className="flex gap-3">
-                    <div className="bg-bookclub-primary text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">4</div>
-                    <p>Regular interactions with a dedicated book buddy to keep your child motivated</p>
+                    <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">4</div>
+                    <p className="text-purple-900">Regular interactions with a dedicated book buddy to keep your child motivated</p>
                   </li>
                   <li className="flex gap-3">
-                    <div className="bg-bookclub-primary text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">5</div>
-                    <p>We help set achievable reading targets to encourage steady progress</p>
+                    <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">5</div>
+                    <p className="text-purple-900">We help set achievable reading targets to encourage steady progress</p>
                   </li>
                   <li className="flex gap-3">
-                    <div className="bg-bookclub-primary text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">6</div>
-                    <p>Engaging book discussions after finishing each book</p>
+                    <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">6</div>
+                    <p className="text-purple-900">Engaging book discussions after finishing each book</p>
                   </li>
                 </ul>
               </div>
             </div>
           </div>
           
-          <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">Choose Your Membership Plan</h2>
+          <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center text-purple-800 relative">
+            <span className="inline-block relative">
+              Choose Your Membership Plan
+              <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-600"></span>
+            </span>
+          </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {membershipPlans.map((plan) => (
               <PlanCard 
@@ -384,15 +615,17 @@ const MembershipPage: React.FC = () => {
                 variant="outline" 
                 onClick={handleManageSubscription}
                 disabled={loading}
+                className="border-purple-500 text-purple-700 hover:bg-purple-50"
               >
+                <CreditCard className="mr-2 h-4 w-4" />
                 {loading ? 'Loading...' : 'Manage Your Subscription'}
               </Button>
             </div>
           )}
           
-          <div className="mt-12 bg-bookclub-accent p-6 rounded-lg max-w-3xl mx-auto">
-            <h3 className="text-xl font-semibold mb-4 text-center">Did You Know?</h3>
-            <p className="text-gray-700 text-center">
+          <div className="mt-12 bg-gradient-to-br from-purple-50 to-indigo-50 p-8 rounded-lg max-w-3xl mx-auto transform transition-transform hover:scale-105">
+            <h3 className="text-xl font-semibold mb-4 text-center text-purple-800">Did You Know?</h3>
+            <p className="text-purple-700 text-center">
               Studies show that a child begins to enjoy reading in about 3 months, and a solid reading habit forms between 6 to 9 months. 
               Start your child's reading journey today with our tailored book club experience and watch them develop a passion for books!
             </p>

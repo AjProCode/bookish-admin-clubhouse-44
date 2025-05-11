@@ -29,7 +29,9 @@ const MembershipRequired: React.FC<MembershipRequiredProps> = ({ children }) => 
     const checkSubscription = async () => {
       try {
         // Check if user is authenticated
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData.session;
+        
         if (!session) {
           setIsAuthenticated(false);
           setIsLoading(false);
@@ -72,12 +74,12 @@ const MembershipRequired: React.FC<MembershipRequiredProps> = ({ children }) => 
     checkSubscription();
     
     // Subscribe to auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+    const { subscription } = supabase.auth.onAuthStateChange(() => {
       checkSubscription();
     });
     
     return () => {
-      authListener?.subscription?.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
   
