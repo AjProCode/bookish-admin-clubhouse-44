@@ -1,13 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
-
-// Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface MembershipRequiredProps {
   children: React.ReactNode;
@@ -20,6 +15,17 @@ const MembershipRequired: React.FC<MembershipRequiredProps> = ({ children }) => 
   const location = useLocation();
 
   useEffect(() => {
+    // Check if Supabase is configured properly
+    if (!isSupabaseConfigured()) {
+      toast({
+        title: "Configuration Error",
+        description: "Authentication service is not properly configured",
+        variant: "destructive"
+      });
+      setIsLoading(false);
+      return;
+    }
+
     const checkSubscription = async () => {
       try {
         // Check if user is authenticated
