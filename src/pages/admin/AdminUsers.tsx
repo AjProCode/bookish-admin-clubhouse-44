@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
-import UserTable, { User } from '@/components/admin/UserTable';
+import UserTable from '@/components/admin/UserTable';
 import UserForm from '@/components/admin/UserForm';
 import UserDetailsView from '@/components/admin/UserDetailsView';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Plus } from 'lucide-react';
-import { UserDetails, UserSubscription, UserReadingLog } from '@/models/UserBook';
+import { UserDetails, UserSubscription, UserReadingLog, UserStatus } from '@/models/UserBook';
 
 // Sample user subscription data
 const sampleSubscriptions: UserSubscription[] = [
@@ -72,7 +72,7 @@ const initialUsers: UserDetails[] = [
     email: 'john@example.com',
     joinDate: 'Jan 15, 2023',
     role: 'admin',
-    status: 'active',
+    status: 'active', 
     booksRead: 12,
     subscription: sampleSubscriptions[0],
     readingLogs: sampleReadingLogs.filter(log => log.userId === '1'),
@@ -143,6 +143,7 @@ const AdminUsers: React.FC = () => {
           day: 'numeric',
           year: 'numeric'
         }),
+        status: userData.status as UserStatus,
         booksRead: 0,
         userBooks: []
       };
@@ -180,7 +181,11 @@ const AdminUsers: React.FC = () => {
     // Simulate API call delay
     setTimeout(() => {
       const updatedUsers = users.map(user => 
-        user.id === currentUser?.id ? { ...user, ...userData } : user
+        user.id === currentUser?.id ? { 
+          ...user, 
+          ...userData,
+          status: userData.status as UserStatus 
+        } : user
       );
       
       setUsers(updatedUsers);
@@ -199,7 +204,7 @@ const AdminUsers: React.FC = () => {
     const userToUpdate = users.find(u => u.id === userId);
     if (!userToUpdate) return;
     
-    const newStatus = userToUpdate.status === 'active' ? 'inactive' : 'active';
+    const newStatus = userToUpdate.status === 'active' ? 'inactive' as UserStatus : 'active' as UserStatus;
     const actionText = newStatus === 'active' ? 'activated' : 'deactivated';
     
     const updatedUsers = users.map(user => 

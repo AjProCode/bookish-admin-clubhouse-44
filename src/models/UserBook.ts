@@ -1,6 +1,6 @@
-
 export type ReadingStatus = "want_to_read" | "reading" | "completed" | "dnf";
 export type SubscriptionPlan = "monthly" | "quarterly" | "biannual" | "annual" | "none";
+export type UserStatus = "active" | "inactive";
 
 export interface UserBook {
   id: string;
@@ -40,7 +40,7 @@ export interface UserDetails {
   email: string;
   joinDate: string;
   role: 'admin' | 'member';
-  status: 'active' | 'inactive';
+  status: UserStatus;
   booksRead: number;
   subscription?: UserSubscription;
   readingLogs?: UserReadingLog[];

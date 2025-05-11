@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +34,7 @@ const UserDetailsView: React.FC<UserDetailsViewProps> = ({ user, onUpdateSubscri
     setSubscriptionData(prev => ({ ...prev, [name]: value }));
   };
   
-  const handleSelectChange = (name: string, value: string) => {
+  const handleSelectChange = (name: string, value: any) => {
     setSubscriptionData(prev => ({ ...prev, [name]: value }));
   };
   

@@ -19,6 +19,15 @@ import {
 import { MoreHorizontal, Pencil, Lock, Unlock, FileText } from 'lucide-react';
 import { UserDetails } from '@/models/UserBook';
 
+// Export the User interface that's compatible with UserDetails
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'member';
+  status: 'active' | 'inactive';
+}
+
 interface UserTableProps {
   users: UserDetails[];
   onEdit: (id: string) => void;
