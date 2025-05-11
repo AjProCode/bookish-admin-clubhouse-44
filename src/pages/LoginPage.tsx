@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,32 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
-import { UserDetails, UserStatus } from '@/models/UserBook';
+import { createClient } from '@supabase/supabase-js';
 
-// Mock user data - in a real app, this would come from an API/backend
-// This will be replaced with Supabase authentication once connected
-const mockUsers: UserDetails[] = [
-  {
-    id: '1',
-    name: 'Admin User',
-    email: 'admin@skillbag.com',
-    joinDate: new Date().toLocaleDateString(),
-    role: 'admin',
-    status: 'active',
-    booksRead: 5,
-    userBooks: []
-  },
-  {
-    id: '2',
-    name: 'Regular User',
-    email: 'user@example.com',
-    joinDate: new Date().toLocaleDateString(),
-    role: 'member',
-    status: 'active',
-    booksRead: 3,
-    userBooks: []
-  }
-];
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -50,44 +30,63 @@ const LoginPage: React.FC = () => {
   const [registrationError, setRegistrationError] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Redirect to bookshelf if already logged in
+        navigate('/bookshelf');
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
     setIsSubmitting(true);
     
-    // In a real application, this would be an API call to validate credentials
-    setTimeout(() => {
-      const user = mockUsers.find(u => u.email === loginEmail);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: loginPassword,
+      });
       
-      if (user && loginPassword === 'password') { // Simple mock password check
-        if (user.status === 'inactive') {
-          setLoginError('Your account has been deactivated. Please contact support.');
-          setIsSubmitting(false);
-          return;
-        }
-        
-        // Store user in localStorage (in a real app, you'd store JWT tokens)
-        localStorage.setItem('currentUser', JSON.stringify(user));
+      if (error) {
+        setLoginError(error.message);
+        setIsSubmitting(false);
+        return;
+      }
+      
+      if (data.user) {
         toast({
           title: "Login successful",
-          description: `Welcome back, ${user.name}!`,
+          description: `Welcome back, ${data.user.email}!`,
         });
-
-        // Redirect based on role
-        if (user.role === 'admin') {
+        
+        // Check for admin role
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+        
+        if (!error && profile?.role === 'admin') {
           navigate('/admin');
         } else {
           navigate('/bookshelf');
         }
-      } else {
-        setLoginError('Invalid email or password');
-        setIsSubmitting(false);
       }
-    }, 1000);
+    } catch (error: any) {
+      setLoginError(error.message || 'An error occurred during login');
+      setIsSubmitting(false);
+    }
   };
   
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegistrationError('');
     
@@ -109,50 +108,55 @@ const LoginPage: React.FC = () => {
     
     setIsSubmitting(true);
     
-    // Check if email already exists
-    const emailExists = mockUsers.some(user => user.email === registerEmail);
-    if (emailExists) {
-      setRegistrationError('An account with this email already exists');
-      setIsSubmitting(false);
-      return;
-    }
-    
-    // In a real application, this would be an API call to create the user
-    setTimeout(() => {
+    try {
       // Create new user
-      const newUser: UserDetails = {
-        id: (mockUsers.length + 1).toString(),
-        name: `${firstName} ${lastName}`,
+      const { data, error } = await supabase.auth.signUp({
         email: registerEmail,
-        joinDate: new Date().toLocaleDateString(),
-        role: 'member',
-        status: 'active' as UserStatus,
-        booksRead: 0,
-        userBooks: []
-      };
-      
-      // Add to mock users (in a real app, this would be saved to a database)
-      mockUsers.push(newUser);
-      
-      toast({
-        title: "Registration successful",
-        description: "Your account has been created. You can now log in.",
+        password: registerPassword,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            full_name: `${firstName} ${lastName}`,
+          },
+        },
       });
       
-      // Reset form
-      setFirstName('');
-      setLastName('');
-      setRegisterEmail('');
-      setRegisterPassword('');
-      setConfirmPassword('');
-      setAgreeToTerms(false);
-      setIsSubmitting(false);
+      if (error) {
+        setRegistrationError(error.message);
+        setIsSubmitting(false);
+        return;
+      }
       
-      // Switch to login tab
-      document.querySelector('[data-value="login"]')?.dispatchEvent(
-        new MouseEvent('click', { bubbles: true })
-      );
-    }, 1000);
+      if (data.user) {
+        // Create a profile record for the user
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            first_name: firstName,
+            last_name: lastName,
+            email: registerEmail,
+            role: 'member',
+            status: 'active',
+            books_read: 0
+          });
+        
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+        }
+        
+        toast({
+          title: "Registration successful",
+          description: "Your account has been created and you're now logged in.",
+        });
+        
+        navigate('/membership');
+      }
+    } catch (error: any) {
+      setRegistrationError(error.message || 'An error occurred during registration');
+      setIsSubmitting(false);
+    }
   };
   
   return (
@@ -173,8 +177,7 @@ const LoginPage: React.FC = () => {
           <h1 className="text-2xl font-bold">Welcome to Skillbag!</h1>
           <p className="text-gray-600">Sign in to access your account or join us.</p>
           <div className="mt-2 text-sm text-gray-500">
-            <p>Admin login: admin@skillbag.com / password</p>
-            <p>User login: user@example.com / password</p>
+            <p>Admin email: admin@skillbag.com (after signup, update role in Supabase)</p>
           </div>
         </div>
         

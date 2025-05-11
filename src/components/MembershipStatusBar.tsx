@@ -2,19 +2,99 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { UserDetails } from '@/models/UserBook';
 import { useNavigate } from 'react-router-dom';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+interface UserProfile {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  subscription?: {
+    status: string;
+    plan: string;
+    end_date: string;
+    next_delivery_date?: string;
+  };
+}
 
 const MembershipStatusBar: React.FC = () => {
-  const [user, setUser] = useState<UserDetails | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Get user from localStorage (in a real app, would validate session)
-    const userData = localStorage.getItem('currentUser');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+        
+        // Get user profile with subscription info
+        const { data, error } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            email,
+            first_name,
+            last_name,
+            subscriptions (
+              status,
+              plan,
+              end_date,
+              next_delivery_date
+            )
+          `)
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching profile", error);
+          setLoading(false);
+          return;
+        }
+        
+        if (data) {
+          setProfile({
+            id: data.id,
+            email: data.email,
+            first_name: data.first_name,
+            last_name: data.last_name,
+            subscription: data.subscriptions && data.subscriptions.length > 0 ? {
+              status: data.subscriptions[0].status,
+              plan: data.subscriptions[0].plan,
+              end_date: data.subscriptions[0].end_date,
+              next_delivery_date: data.subscriptions[0].next_delivery_date
+            } : undefined
+          });
+        }
+      } catch (error) {
+        console.error("Error in useEffect:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+    
+    // Subscribe to auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      fetchProfile();
+    });
+    
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, []);
 
   const formatDate = (dateString?: string) => {
@@ -27,7 +107,19 @@ const MembershipStatusBar: React.FC = () => {
   const handleLogin = () => navigate('/login');
   const handleUpgrade = () => navigate('/membership');
   
-  if (!user) {
+  if (loading) {
+    return (
+      <Card className="mb-6 bg-gray-50">
+        <CardContent className="flex items-center justify-between p-4">
+          <div>
+            <p className="font-medium">Loading membership status...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (!profile) {
     return (
       <Card className="mb-6 bg-gray-50 border-dashed">
         <CardContent className="flex items-center justify-between p-4">
@@ -41,7 +133,7 @@ const MembershipStatusBar: React.FC = () => {
     );
   }
 
-  if (!user.subscription) {
+  if (!profile.subscription || profile.subscription.status !== 'active') {
     return (
       <Card className="mb-6 bg-gray-50">
         <CardContent className="flex items-center justify-between p-4">
@@ -60,12 +152,12 @@ const MembershipStatusBar: React.FC = () => {
       <CardContent className="flex items-center justify-between p-4">
         <div>
           <p className="font-medium text-green-800">
-            Active {user.subscription.plan.charAt(0).toUpperCase() + user.subscription.plan.slice(1)} Subscription
+            Active {profile.subscription.plan.charAt(0).toUpperCase() + profile.subscription.plan.slice(1)} Subscription
           </p>
           <p className="text-sm text-green-700">
-            Valid until {formatDate(user.subscription.endDate)}
-            {user.subscription.nextDeliveryDate && 
-              ` • Next delivery: ${formatDate(user.subscription.nextDeliveryDate)}`}
+            Valid until {formatDate(profile.subscription.end_date)}
+            {profile.subscription.next_delivery_date && 
+              ` • Next delivery: ${formatDate(profile.subscription.next_delivery_date)}`}
           </p>
         </div>
         <Button variant="outline" className="border-green-500 text-green-500" onClick={handleUpgrade}>

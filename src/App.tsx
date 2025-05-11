@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import MembershipRequired from "@/components/MembershipRequired";
 
 // Pages
 import Index from "./pages/Index";
@@ -37,11 +38,13 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/books" element={<BooksPage />} />
           <Route path="/books/:id" element={<BookDetail />} />
-          <Route path="/books/:id/review" element={<BookReviewPage />} />
-          <Route path="/bookshelf" element={<BookshelfPage />} />
-          <Route path="/reading-log" element={<ReadingLogPage />} />
           <Route path="/membership" element={<MembershipPage />} />
           <Route path="/login" element={<LoginPage />} />
+          
+          {/* Protected Routes (require membership) */}
+          <Route path="/books/:id/review" element={<MembershipRequired><BookReviewPage /></MembershipRequired>} />
+          <Route path="/bookshelf" element={<MembershipRequired><BookshelfPage /></MembershipRequired>} />
+          <Route path="/reading-log" element={<MembershipRequired><ReadingLogPage /></MembershipRequired>} />
           
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminLayout />}>

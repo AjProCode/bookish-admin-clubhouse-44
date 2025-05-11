@@ -17,12 +17,17 @@ import { cn } from '@/lib/utils';
 import MembershipStatusBar from '@/components/MembershipStatusBar';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { UserDetails, SubscriptionPlan, UserStatus } from '@/models/UserBook';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Sample membership plans data
 const membershipPlans = [
   {
-    id: '1',
+    id: 'monthly',
     name: 'Monthly Plan',
     description: 'Perfect for those who want to try out our service',
     price: 1199,
@@ -39,7 +44,7 @@ const membershipPlans = [
     isActive: true
   },
   {
-    id: '2',
+    id: 'quarterly',
     name: '3 Months',
     description: 'Our recommended plan for developing reading habits',
     price: 3000,
@@ -58,7 +63,7 @@ const membershipPlans = [
     isPopular: true
   },
   {
-    id: '3',
+    id: 'biannual',
     name: '6 Months',
     description: 'Great value for building a solid reading foundation',
     price: 5500,
@@ -77,7 +82,7 @@ const membershipPlans = [
     isActive: true
   },
   {
-    id: '4',
+    id: 'annual',
     name: 'Annual',
     description: 'Best value for committed readers',
     price: 10000,
@@ -98,6 +103,13 @@ const membershipPlans = [
   }
 ];
 
+interface UserProfile {
+  id: string;
+  subscription?: {
+    plan: string;
+  };
+}
+
 interface PlanProps {
   plan: {
     id: string;
@@ -110,9 +122,10 @@ interface PlanProps {
   };
   onSubscribe: (planId: string) => void;
   isCurrentPlan?: boolean;
+  loading?: boolean;
 }
 
-const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan }) => {
+const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan, loading }) => {
   return (
     <Card className={cn(
       "flex flex-col h-full transition-all duration-200 hover:shadow-lg",
@@ -154,9 +167,9 @@ const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan }) => 
           className="w-full" 
           variant={isCurrentPlan ? "outline" : (plan.isPopular ? "default" : "outline")}
           onClick={() => onSubscribe(plan.id)}
-          disabled={isCurrentPlan}
+          disabled={isCurrentPlan || loading}
         >
-          {isCurrentPlan ? 'Current Plan' : 'Subscribe Now'}
+          {loading ? 'Processing...' : (isCurrentPlan ? 'Current Plan' : 'Subscribe Now')}
         </Button>
       </CardFooter>
     </Card>
@@ -165,86 +178,136 @@ const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan }) => 
 
 const MembershipPage: React.FC = () => {
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState<UserDetails | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [planIdLoading, setPlanIdLoading] = useState<string | null>(null);
   
   useEffect(() => {
-    // Get user from localStorage (in a real app, would validate session)
-    const userData = localStorage.getItem('currentUser');
-    if (userData) {
-      setCurrentUser(JSON.parse(userData));
-    }
-  }, []);
-  
-  const handleSubscribe = (planId: string) => {
-    if (!currentUser) {
-      // If not logged in, redirect to login page
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in or create an account to subscribe.",
-      });
-      navigate('/login');
-      return;
-    }
-    
-    // Find the selected plan
-    const selectedPlan = membershipPlans.find(p => p.id === planId);
-    if (!selectedPlan) return;
-    
-    // In a real app, this would redirect to a payment page
-    // For now, we'll just update the user's subscription in localStorage
-    const planType = getPlanType(selectedPlan.duration);
-    
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + selectedPlan.duration);
-    
-    const nextDeliveryDate = new Date();
-    nextDeliveryDate.setDate(nextDeliveryDate.getDate() + 7); // Next delivery in a week
-    
-    const updatedUser: UserDetails = {
-      ...currentUser,
-      subscription: {
-        id: Date.now().toString(),
-        userId: currentUser.id,
-        plan: planType,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        isActive: true,
-        nextDeliveryDate: nextDeliveryDate.toISOString(),
-        booksDelivered: 0
+    const fetchProfile = async () => {
+      try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          return;
+        }
+        
+        // Get user profile with subscription info
+        const { data, error } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            subscriptions (
+              plan
+            )
+          `)
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching profile", error);
+          return;
+        }
+        
+        if (data) {
+          setProfile({
+            id: data.id,
+            subscription: data.subscriptions && data.subscriptions.length > 0 ? {
+              plan: data.subscriptions[0].plan
+            } : undefined
+          });
+        }
+      } catch (error) {
+        console.error("Error in useEffect:", error);
       }
     };
+
+    fetchProfile();
     
-    // Save updated user to localStorage
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-    setCurrentUser(updatedUser);
-    
-    toast({
-      title: "Subscription Successful",
-      description: `You have successfully subscribed to the ${selectedPlan.name} plan.`,
+    // Subscribe to auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      fetchProfile();
     });
+    
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, []);
+  
+  const handleSubscribe = async (planId: string) => {
+    try {
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in or create an account to subscribe.",
+        });
+        navigate('/login');
+        return;
+      }
+      
+      setPlanIdLoading(planId);
+      setLoading(true);
+      
+      // Call Supabase Edge Function to create a Stripe checkout session
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { planId }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      toast({
+        title: "Subscription Error",
+        description: "There was a problem setting up your subscription. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+      setPlanIdLoading(null);
+    }
   };
   
-  const getPlanType = (duration: number): SubscriptionPlan => {
-    switch (duration) {
-      case 1: return 'monthly';
-      case 3: return 'quarterly';
-      case 6: return 'biannual';
-      case 12: return 'annual';
-      default: return 'monthly';
+  const handleManageSubscription = async () => {
+    try {
+      setLoading(true);
+      
+      // Call Supabase Edge Function to create a customer portal session
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No portal URL returned");
+      }
+    } catch (error) {
+      console.error("Error creating customer portal session:", error);
+      toast({
+        title: "Error",
+        description: "There was a problem accessing your subscription settings. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
   
   const getUserPlanId = (): string | undefined => {
-    if (!currentUser?.subscription) return undefined;
-    
-    switch (currentUser.subscription.plan) {
-      case 'monthly': return '1';
-      case 'quarterly': return '2';
-      case 'biannual': return '3';
-      case 'annual': return '4';
-      default: return undefined;
-    }
+    if (!profile?.subscription) return undefined;
+    return profile.subscription.plan;
   };
   
   const currentPlanId = getUserPlanId();
@@ -316,9 +379,22 @@ const MembershipPage: React.FC = () => {
                 plan={plan} 
                 onSubscribe={handleSubscribe} 
                 isCurrentPlan={plan.id === currentPlanId} 
+                loading={loading && planIdLoading === plan.id}
               />
             ))}
           </div>
+          
+          {profile?.subscription && (
+            <div className="mt-8 text-center">
+              <Button 
+                variant="outline" 
+                onClick={handleManageSubscription}
+                disabled={loading}
+              >
+                {loading ? 'Loading...' : 'Manage Your Subscription'}
+              </Button>
+            </div>
+          )}
           
           <div className="mt-12 bg-bookclub-accent p-6 rounded-lg max-w-3xl mx-auto">
             <h3 className="text-xl font-semibold mb-4 text-center">Did You Know?</h3>
