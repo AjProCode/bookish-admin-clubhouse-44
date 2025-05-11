@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,12 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, X } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import MembershipStatusBar from '@/components/MembershipStatusBar';
+import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
+import { UserDetails, SubscriptionPlan, UserStatus } from '@/models/UserBook';
 
 // Sample membership plans data
 const membershipPlans = [
@@ -103,19 +107,27 @@ interface PlanProps {
     duration: number;
     features: string[];
     isPopular?: boolean;
-  }
+  };
+  onSubscribe: (planId: string) => void;
+  isCurrentPlan?: boolean;
 }
 
-const PlanCard: React.FC<PlanProps> = ({ plan }) => {
+const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan }) => {
   return (
     <Card className={cn(
       "flex flex-col h-full transition-all duration-200 hover:shadow-lg",
-      plan.isPopular && "border-bookclub-primary border-2"
+      plan.isPopular && "border-bookclub-primary border-2",
+      isCurrentPlan && "border-green-500 border-2"
     )}>
       <CardHeader className="pb-4">
         {plan.isPopular && (
           <Badge className="self-start mb-2 bg-bookclub-primary text-white">
             Recommended
+          </Badge>
+        )}
+        {isCurrentPlan && (
+          <Badge className="self-start mb-2 bg-green-500 text-white">
+            Your Plan
           </Badge>
         )}
         <CardTitle className="text-2xl">{plan.name}</CardTitle>
@@ -138,8 +150,13 @@ const PlanCard: React.FC<PlanProps> = ({ plan }) => {
         </ul>
       </CardContent>
       <CardFooter className="pt-4">
-        <Button className="w-full" variant={plan.isPopular ? "default" : "outline"}>
-          Subscribe Now
+        <Button 
+          className="w-full" 
+          variant={isCurrentPlan ? "outline" : (plan.isPopular ? "default" : "outline")}
+          onClick={() => onSubscribe(plan.id)}
+          disabled={isCurrentPlan}
+        >
+          {isCurrentPlan ? 'Current Plan' : 'Subscribe Now'}
         </Button>
       </CardFooter>
     </Card>
@@ -147,6 +164,91 @@ const PlanCard: React.FC<PlanProps> = ({ plan }) => {
 };
 
 const MembershipPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState<UserDetails | null>(null);
+  
+  useEffect(() => {
+    // Get user from localStorage (in a real app, would validate session)
+    const userData = localStorage.getItem('currentUser');
+    if (userData) {
+      setCurrentUser(JSON.parse(userData));
+    }
+  }, []);
+  
+  const handleSubscribe = (planId: string) => {
+    if (!currentUser) {
+      // If not logged in, redirect to login page
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in or create an account to subscribe.",
+      });
+      navigate('/login');
+      return;
+    }
+    
+    // Find the selected plan
+    const selectedPlan = membershipPlans.find(p => p.id === planId);
+    if (!selectedPlan) return;
+    
+    // In a real app, this would redirect to a payment page
+    // For now, we'll just update the user's subscription in localStorage
+    const planType = getPlanType(selectedPlan.duration);
+    
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + selectedPlan.duration);
+    
+    const nextDeliveryDate = new Date();
+    nextDeliveryDate.setDate(nextDeliveryDate.getDate() + 7); // Next delivery in a week
+    
+    const updatedUser: UserDetails = {
+      ...currentUser,
+      subscription: {
+        id: Date.now().toString(),
+        userId: currentUser.id,
+        plan: planType,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        isActive: true,
+        nextDeliveryDate: nextDeliveryDate.toISOString(),
+        booksDelivered: 0
+      }
+    };
+    
+    // Save updated user to localStorage
+    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    setCurrentUser(updatedUser);
+    
+    toast({
+      title: "Subscription Successful",
+      description: `You have successfully subscribed to the ${selectedPlan.name} plan.`,
+    });
+  };
+  
+  const getPlanType = (duration: number): SubscriptionPlan => {
+    switch (duration) {
+      case 1: return 'monthly';
+      case 3: return 'quarterly';
+      case 6: return 'biannual';
+      case 12: return 'annual';
+      default: return 'monthly';
+    }
+  };
+  
+  const getUserPlanId = (): string | undefined => {
+    if (!currentUser?.subscription) return undefined;
+    
+    switch (currentUser.subscription.plan) {
+      case 'monthly': return '1';
+      case 'quarterly': return '2';
+      case 'biannual': return '3';
+      case 'annual': return '4';
+      default: return undefined;
+    }
+  };
+  
+  const currentPlanId = getUserPlanId();
+  
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -162,7 +264,9 @@ const MembershipPage: React.FC = () => {
           </div>
         </section>
         
-        <section className="py-12 container mx-auto px-4">
+        <section className="py-6 container mx-auto px-4">
+          <MembershipStatusBar />
+          
           <div className="max-w-4xl mx-auto mb-16">
             <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center">How It Works</h2>
             <div className="grid md:grid-cols-2 gap-8">
@@ -207,7 +311,12 @@ const MembershipPage: React.FC = () => {
           <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">Choose Your Membership Plan</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {membershipPlans.map((plan) => (
-              <PlanCard key={plan.id} plan={plan} />
+              <PlanCard 
+                key={plan.id} 
+                plan={plan} 
+                onSubscribe={handleSubscribe} 
+                isCurrentPlan={plan.id === currentPlanId} 
+              />
             ))}
           </div>
           

@@ -1,33 +1,35 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { UserDetails, UserSubscription, SubscriptionPlan } from '@/models/UserBook';
-import { Calendar } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { UserDetails, UserSubscription, SubscriptionPlan, UserBook } from "@/models/UserBook";
 
 interface UserDetailsViewProps {
   user: UserDetails;
-  onUpdateSubscription: (subscription: UserSubscription) => void;
+  onUpdateSubscription: (subscriptionData: UserSubscription) => void;
 }
 
-const UserDetailsView: React.FC<UserDetailsViewProps> = ({ user, onUpdateSubscription }) => {
+const UserDetailsView: React.FC<UserDetailsViewProps> = ({
+  user,
+  onUpdateSubscription
+}) => {
+  const [showSubscriptionForm, setShowSubscriptionForm] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState<UserSubscription>(
     user.subscription || {
-      id: Date.now().toString(),
+      id: "",
       userId: user.id,
-      plan: 'none' as SubscriptionPlan,
+      plan: "none",
       startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date().toISOString().split('T')[0],
-      isActive: false
+      endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+      isActive: true
     }
   );
-  
-  const [isEditing, setIsEditing] = useState(false);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -38,92 +40,117 @@ const UserDetailsView: React.FC<UserDetailsViewProps> = ({ user, onUpdateSubscri
     setSubscriptionData(prev => ({ ...prev, [name]: value }));
   };
   
-  const handleSubmit = () => {
-    onUpdateSubscription({
-      ...subscriptionData,
-      isActive: subscriptionData.plan !== 'none'
-    });
-    setIsEditing(false);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onUpdateSubscription(subscriptionData);
+    setShowSubscriptionForm(false);
   };
   
-  const formatDate = (dateString?: string) => {
+  const calculateNextPeriod = (plan: SubscriptionPlan): number => {
+    switch(plan) {
+      case 'monthly': return 1;
+      case 'quarterly': return 3;
+      case 'biannual': return 6;
+      case 'annual': return 12;
+      default: return 1;
+    }
+  };
+  
+  const handlePlanChange = (plan: string) => {
+    const nextPeriod = calculateNextPeriod(plan as SubscriptionPlan);
+    const startDate = new Date(subscriptionData.startDate);
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + nextPeriod);
+    
+    setSubscriptionData(prev => ({
+      ...prev,
+      plan: plan as SubscriptionPlan,
+      endDate: endDate.toISOString().split('T')[0]
+    }));
+  };
+  
+  const formatDateString = (dateString?: string) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric'
     });
   };
 
-  const calculateEndDate = (startDate: string, plan: SubscriptionPlan): string => {
-    if (plan === 'none') return startDate;
-    
-    const start = new Date(startDate);
-    const end = new Date(start);
-    
-    switch(plan) {
-      case 'monthly':
-        end.setMonth(start.getMonth() + 1);
-        break;
-      case 'quarterly':
-        end.setMonth(start.getMonth() + 3);
-        break;
-      case 'biannual':
-        end.setMonth(start.getMonth() + 6);
-        break;
-      case 'annual':
-        end.setFullYear(start.getFullYear() + 1);
-        break;
-      default:
-        break;
-    }
-    
-    return end.toISOString().split('T')[0];
-  };
-  
-  const handlePlanChange = (plan: string) => {
-    const endDate = calculateEndDate(subscriptionData.startDate, plan as SubscriptionPlan);
-    setSubscriptionData(prev => ({ 
-      ...prev, 
-      plan: plan as SubscriptionPlan,
-      endDate
-    }));
-  };
-  
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    const endDate = calculateEndDate(value, subscriptionData.plan);
-    setSubscriptionData(prev => ({ 
-      ...prev, 
-      startDate: value,
-      endDate
-    }));
-  };
-  
   return (
-    <Tabs defaultValue="subscription" className="w-full">
-      <TabsList className="grid grid-cols-3 mb-4">
-        <TabsTrigger value="subscription">Subscription</TabsTrigger>
-        <TabsTrigger value="reading">Reading Log</TabsTrigger>
-        <TabsTrigger value="bookshelf">Bookshelf</TabsTrigger>
-      </TabsList>
-      
-      {/* Subscription Tab */}
-      <TabsContent value="subscription">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex justify-between items-center">
-              <span>Subscription Details</span>
-              {!isEditing && (
-                <Button onClick={() => setIsEditing(true)}>Edit Subscription</Button>
-              )}
-            </CardTitle>
-            <CardDescription>Manage the user's subscription plan and details</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isEditing ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-4">
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Information</CardTitle>
+              <CardDescription>Basic details about the user</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm text-gray-500">Name</Label>
+                  <div className="text-lg font-medium">{user.name}</div>
+                </div>
+                
+                <div>
+                  <Label className="text-sm text-gray-500">Email</Label>
+                  <div className="text-lg font-medium">{user.email}</div>
+                </div>
+                
+                <div>
+                  <Label className="text-sm text-gray-500">Join Date</Label>
+                  <div>{user.joinDate}</div>
+                </div>
+                
+                <div>
+                  <Label className="text-sm text-gray-500">Role</Label>
+                  <div>
+                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                      {user.role}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-sm text-gray-500">Status</Label>
+                  <div>
+                    <Badge 
+                      variant={user.status === 'active' ? 'outline' : 'secondary'}
+                      className={user.status === 'active' ? 'border-green-500 text-green-500' : 'border-gray-400 text-gray-500'}
+                    >
+                      {user.status}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-sm text-gray-500">Books Read</Label>
+                  <div className="text-lg font-medium">{user.booksRead}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="flex-1">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Subscription</CardTitle>
+                <CardDescription>User's membership details</CardDescription>
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => setShowSubscriptionForm(!showSubscriptionForm)}
+              >
+                {showSubscriptionForm ? 'Cancel' : 'Edit Subscription'}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {showSubscriptionForm ? (
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="plan">Subscription Plan</Label>
                     <Select
@@ -131,228 +158,189 @@ const UserDetailsView: React.FC<UserDetailsViewProps> = ({ user, onUpdateSubscri
                       onValueChange={(value) => handlePlanChange(value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a plan" />
+                        <SelectValue placeholder="Select plan" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="monthly">Monthly (₹1199)</SelectItem>
-                        <SelectItem value="quarterly">Quarterly - 3 Months (₹3000)</SelectItem>
-                        <SelectItem value="biannual">Biannual - 6 Months (₹5500)</SelectItem>
-                        <SelectItem value="annual">Annual (₹10000)</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="quarterly">Quarterly (3 Months)</SelectItem>
+                        <SelectItem value="biannual">Biannual (6 Months)</SelectItem>
+                        <SelectItem value="annual">Annual</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="isActive">Status</Label>
-                    <Select
-                      value={subscriptionData.isActive ? "active" : "inactive"}
-                      onValueChange={(value) => handleSelectChange('isActive', value === "active")}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="startDate">Start Date</Label>
+                      <Input
+                        id="startDate"
+                        name="startDate"
+                        type="date"
+                        value={subscriptionData.startDate}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="endDate">End Date</Label>
+                      <Input
+                        id="endDate"
+                        name="endDate"
+                        type="date"
+                        value={subscriptionData.endDate}
+                        onChange={handleInputChange}
+                      />
+                    </div>
                   </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="startDate">Start Date</Label>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="isActive">Active</Label>
                     <Input
-                      id="startDate"
-                      name="startDate"
-                      type="date"
-                      value={subscriptionData.startDate}
-                      onChange={handleStartDateChange}
+                      id="isActive"
+                      name="isActive"
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={subscriptionData.isActive}
+                      onChange={(e) => handleSelectChange("isActive", e.target.checked)}
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="endDate">End Date</Label>
-                    <Input
-                      id="endDate"
-                      name="endDate"
-                      type="date"
-                      value={subscriptionData.endDate}
-                      onChange={handleInputChange}
-                      disabled
-                    />
+                  <div className="flex justify-end">
+                    <Button type="submit">Save Changes</Button>
                   </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nextDeliveryDate">Next Delivery Date</Label>
-                    <Input
-                      id="nextDeliveryDate"
-                      name="nextDeliveryDate"
-                      type="date"
-                      value={subscriptionData.nextDeliveryDate || ''}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="booksDelivered">Books Delivered</Label>
-                    <Input
-                      id="booksDelivered"
-                      name="booksDelivered"
-                      type="number"
-                      min="0"
-                      value={subscriptionData.booksDelivered || 0}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="font-medium text-gray-500 mb-2">Subscription Plan</h3>
-                  <p className="text-lg">
-                    {subscriptionData.plan === 'none' ? 'No Subscription' : (
-                      <>
-                        {subscriptionData.plan.charAt(0).toUpperCase() + subscriptionData.plan.slice(1)}
-                        {' '}
-                        <Badge variant={subscriptionData.isActive ? "outline" : "secondary"} className={subscriptionData.isActive ? "border-green-500 text-green-500 ml-2" : "ml-2"}>
-                          {subscriptionData.isActive ? "Active" : "Inactive"}
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  {user.subscription ? (
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <Label className="text-sm text-gray-500">Plan</Label>
+                        <Badge className={user.subscription.isActive ? 'bg-green-500' : 'bg-gray-400'}>
+                          {user.subscription.plan.charAt(0).toUpperCase() + user.subscription.plan.slice(1)}
                         </Badge>
-                      </>
-                    )}
-                  </p>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <Label className="text-sm text-gray-500">Start Date</Label>
+                        <span>{formatDateString(user.subscription.startDate)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <Label className="text-sm text-gray-500">End Date</Label>
+                        <span>{formatDateString(user.subscription.endDate)}</span>
+                      </div>
+                      
+                      {user.subscription.nextDeliveryDate && (
+                        <div className="flex justify-between">
+                          <Label className="text-sm text-gray-500">Next Delivery</Label>
+                          <span>{formatDateString(user.subscription.nextDeliveryDate)}</span>
+                        </div>
+                      )}
+                      
+                      {user.subscription.booksDelivered !== undefined && (
+                        <div className="flex justify-between">
+                          <Label className="text-sm text-gray-500">Books Delivered</Label>
+                          <span>{user.subscription.booksDelivered}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between">
+                        <Label className="text-sm text-gray-500">Status</Label>
+                        <Badge variant="outline" className={user.subscription.isActive ? 'text-green-500 border-green-500' : 'text-gray-500 border-gray-500'}>
+                          {user.subscription.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 py-4">
+                      No active subscription
+                    </div>
+                  )}
                 </div>
-                
-                <div>
-                  <h3 className="font-medium text-gray-500 mb-2">Books Delivered</h3>
-                  <p className="text-lg">{subscriptionData.booksDelivered || 0}</p>
-                </div>
-                
-                <div>
-                  <h3 className="font-medium text-gray-500 mb-2">Start Date</h3>
-                  <p className="text-lg flex items-center">
-                    <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                    {formatDate(subscriptionData.startDate)}
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-medium text-gray-500 mb-2">End Date</h3>
-                  <p className="text-lg flex items-center">
-                    <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                    {formatDate(subscriptionData.endDate)}
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-medium text-gray-500 mb-2">Next Delivery</h3>
-                  <p className="text-lg flex items-center">
-                    <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                    {formatDate(subscriptionData.nextDeliveryDate)}
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-          {isEditing && (
-            <CardFooter className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
-              <Button onClick={handleSubmit}>Save Changes</Button>
-            </CardFooter>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Tabs defaultValue="readingLogs">
+        <TabsList className="grid grid-cols-2">
+          <TabsTrigger value="readingLogs">Reading Logs</TabsTrigger>
+          <TabsTrigger value="bookshelf">Bookshelf</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="readingLogs" className="p-4 border rounded-lg mt-4">
+          <h3 className="text-lg font-semibold mb-4">Reading Activity</h3>
+          
+          {user.readingLogs && user.readingLogs.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Book ID</TableHead>
+                  <TableHead>Time Read (min)</TableHead>
+                  <TableHead>Pages Read</TableHead>
+                  <TableHead>Notes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {user.readingLogs.map(log => (
+                  <TableRow key={log.id}>
+                    <TableCell>{formatDateString(log.date)}</TableCell>
+                    <TableCell>{log.bookId}</TableCell>
+                    <TableCell>{log.minutesRead}</TableCell>
+                    <TableCell>{log.pagesRead}</TableCell>
+                    <TableCell>{log.notes || '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              No reading logs found
+            </div>
           )}
-        </Card>
-      </TabsContent>
-      
-      {/* Reading Log Tab */}
-      <TabsContent value="reading">
-        <Card>
-          <CardHeader>
-            <CardTitle>Reading Log</CardTitle>
-            <CardDescription>The user's reading activity over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {user.readingLogs && user.readingLogs.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Book ID</TableHead>
-                    <TableHead>Minutes Read</TableHead>
-                    <TableHead>Pages Read</TableHead>
-                    <TableHead>Notes</TableHead>
+        </TabsContent>
+        
+        <TabsContent value="bookshelf" className="p-4 border rounded-lg mt-4">
+          <h3 className="text-lg font-semibold mb-4">User's Bookshelf</h3>
+          
+          {user.userBooks && user.userBooks.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Book ID</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date Added</TableHead>
+                  <TableHead>Date Started</TableHead>
+                  <TableHead>Date Finished</TableHead>
+                  <TableHead>Rating</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {user.userBooks.map(book => (
+                  <TableRow key={book.id}>
+                    <TableCell>{book.bookId}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{book.status}</Badge>
+                    </TableCell>
+                    <TableCell>{formatDateString(book.dateAdded)}</TableCell>
+                    <TableCell>{formatDateString(book.dateStarted)}</TableCell>
+                    <TableCell>{formatDateString(book.dateFinished)}</TableCell>
+                    <TableCell>{book.rating || '-'}/5</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {user.readingLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell>{formatDate(log.date)}</TableCell>
-                      <TableCell>{log.bookId}</TableCell>
-                      <TableCell>{log.minutesRead}</TableCell>
-                      <TableCell>{log.pagesRead}</TableCell>
-                      <TableCell>{log.notes || 'N/A'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center py-8 text-gray-500">No reading logs found for this user.</div>
-            )}
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      {/* Bookshelf Tab */}
-      <TabsContent value="bookshelf">
-        <Card>
-          <CardHeader>
-            <CardTitle>Bookshelf</CardTitle>
-            <CardDescription>Books in the user's collection</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {user.userBooks && user.userBooks.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Book ID</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date Added</TableHead>
-                    <TableHead>Rating</TableHead>
-                    <TableHead>Favorite</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {user.userBooks.map((book) => (
-                    <TableRow key={book.id}>
-                      <TableCell>{book.bookId}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {book.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{formatDate(book.dateAdded)}</TableCell>
-                      <TableCell>{book.rating || 'Not rated'}</TableCell>
-                      <TableCell>
-                        {book.isFavorite ? (
-                          <Badge variant="default">Favorite</Badge>
-                        ) : (
-                          <Badge variant="outline">No</Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center py-8 text-gray-500">No books found in this user's bookshelf.</div>
-            )}
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              No books in user's bookshelf
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

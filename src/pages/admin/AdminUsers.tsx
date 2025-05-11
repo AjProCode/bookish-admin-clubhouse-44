@@ -7,7 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Plus } from 'lucide-react';
-import { UserDetails, UserSubscription, UserReadingLog, UserStatus } from '@/models/UserBook';
+import { 
+  UserDetails, 
+  UserSubscription, 
+  UserReadingLog, 
+  UserStatus, 
+  UserBook, 
+  ReadingStatus 
+} from '@/models/UserBook';
 
 // Sample user subscription data
 const sampleSubscriptions: UserSubscription[] = [
@@ -64,6 +71,43 @@ const sampleReadingLogs: UserReadingLog[] = [
   }
 ];
 
+// Sample user books (bookshelf)
+const sampleUserBooks: UserBook[] = [
+  {
+    id: 'userbook1',
+    bookId: 'book1',
+    userId: '1',
+    status: 'completed',
+    dateAdded: '2023-01-10',
+    dateStarted: '2023-01-12',
+    dateFinished: '2023-01-20',
+    pagesRead: 200,
+    rating: 4,
+    review: 'Great book for beginners!',
+    notes: 'Would recommend to friends.',
+    isFavorite: true
+  },
+  {
+    id: 'userbook2',
+    bookId: 'book2',
+    userId: '1',
+    status: 'reading',
+    dateAdded: '2023-01-15',
+    dateStarted: '2023-01-18',
+    pagesRead: 75,
+    notes: 'Interesting plot developments.',
+    isFavorite: false
+  },
+  {
+    id: 'userbook3',
+    bookId: 'book3',
+    userId: '2',
+    status: 'want_to_read',
+    dateAdded: '2023-02-01',
+    isFavorite: false
+  }
+];
+
 // Sample users data with extended information
 const initialUsers: UserDetails[] = [
   {
@@ -76,7 +120,7 @@ const initialUsers: UserDetails[] = [
     booksRead: 12,
     subscription: sampleSubscriptions[0],
     readingLogs: sampleReadingLogs.filter(log => log.userId === '1'),
-    userBooks: []
+    userBooks: sampleUserBooks.filter(book => book.userId === '1')
   },
   {
     id: '2',
@@ -88,7 +132,7 @@ const initialUsers: UserDetails[] = [
     booksRead: 8,
     subscription: sampleSubscriptions[1],
     readingLogs: sampleReadingLogs.filter(log => log.userId === '2'),
-    userBooks: []
+    userBooks: sampleUserBooks.filter(book => book.userId === '2')
   },
   {
     id: '3',
@@ -123,6 +167,26 @@ const initialUsers: UserDetails[] = [
 ];
 
 const AdminUsers: React.FC = () => {
+  // Check if a user is logged in (from localStorage)
+  React.useEffect(() => {
+    const checkAuth = () => {
+      const currentUser = localStorage.getItem('currentUser');
+      if (!currentUser) {
+        // If not logged in, redirect to login page
+        window.location.href = '/login';
+        return;
+      }
+      
+      // If logged in but not admin, redirect to home
+      const user = JSON.parse(currentUser);
+      if (user.role !== 'admin') {
+        window.location.href = '/';
+      }
+    };
+    
+    checkAuth();
+  }, []);
+  
   const [users, setUsers] = useState<UserDetails[]>(initialUsers);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
