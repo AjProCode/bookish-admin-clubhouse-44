@@ -11,11 +11,12 @@ import { toast } from '@/hooks/use-toast';
 import { UserDetails, UserStatus } from '@/models/UserBook';
 
 // Mock user data - in a real app, this would come from an API/backend
+// This will be replaced with Supabase authentication once connected
 const mockUsers: UserDetails[] = [
   {
     id: '1',
     name: 'Admin User',
-    email: 'admin@example.com',
+    email: 'admin@skillbag.com',
     joinDate: new Date().toLocaleDateString(),
     role: 'admin',
     status: 'active',
@@ -162,15 +163,19 @@ const LoginPage: React.FC = () => {
       
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-2">
-            <svg className="h-8 w-8 text-bookclub-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-            </svg>
-            <span className="text-xl font-serif font-bold text-gray-800">SkillBag Book Club</span>
+          <div className="inline-flex items-center justify-center mb-4">
+            <img 
+              src="/lovable-uploads/645f9f6e-de35-4451-8744-d12fc8979b30.png" 
+              alt="Skillbag Logo" 
+              className="h-12 mx-auto" 
+            />
           </div>
-          <h1 className="text-2xl font-bold">Welcome to our community!</h1>
+          <h1 className="text-2xl font-bold">Welcome to Skillbag!</h1>
           <p className="text-gray-600">Sign in to access your account or join us.</p>
+          <div className="mt-2 text-sm text-gray-500">
+            <p>Admin login: admin@skillbag.com / password</p>
+            <p>User login: user@example.com / password</p>
+          </div>
         </div>
         
         <Tabs defaultValue="login" className="w-full">

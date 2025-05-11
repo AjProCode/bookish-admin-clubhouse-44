@@ -32,7 +32,7 @@ const MembershipStatusBar: React.FC = () => {
       <Card className="mb-6 bg-gray-50 border-dashed">
         <CardContent className="flex items-center justify-between p-4">
           <div>
-            <p className="font-medium">Join our book club to access exclusive features</p>
+            <p className="font-medium">Join Skillbag to access exclusive features</p>
             <p className="text-sm text-gray-500">Sign in or create an account to get started</p>
           </div>
           <Button onClick={handleLogin}>Sign In</Button>

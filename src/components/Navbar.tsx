@@ -18,11 +18,11 @@ const Navbar: React.FC = () => {
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <svg className="h-8 w-8 text-bookclub-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-          </svg>
-          <span className="text-xl font-serif font-bold text-gray-800">SkillBag Book Club</span>
+          <img 
+            src="/lovable-uploads/645f9f6e-de35-4451-8744-d12fc8979b30.png" 
+            alt="Skillbag Logo" 
+            className="h-8"
+          />
         </Link>
 
         {isMobile ? (

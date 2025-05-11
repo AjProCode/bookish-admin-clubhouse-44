@@ -43,6 +43,9 @@ const AdminLayout: React.FC = () => {
         <div className="flex-1 p-6 overflow-auto">
           <Outlet />
         </div>
+        <div className="bg-white border-t p-4 text-center text-xs text-gray-500">
+          Skillbag Admin Panel - For authorized personnel only
+        </div>
       </div>
     </div>
   );
