@@ -21,6 +21,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBooks from "./pages/admin/AdminBooks";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminSettings from "./pages/admin/AdminSettings";
+import MembershipPlans from "./pages/admin/MembershipPlans";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
             <Route index element={<AdminDashboard />} />
             <Route path="books" element={<AdminBooks />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="membership-plans" element={<MembershipPlans />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
           

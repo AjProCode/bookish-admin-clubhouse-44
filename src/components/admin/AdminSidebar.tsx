@@ -8,7 +8,8 @@ import {
   Settings,
   ChevronRight,
   Menu,
-  X
+  X,
+  BadgeDollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -75,6 +76,11 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ className }) => {
       icon: <Users className="h-5 w-5" />,
       label: 'Users',
       to: '/admin/users',
+    },
+    {
+      icon: <BadgeDollarSign className="h-5 w-5" />,
+      label: 'Membership Plans',
+      to: '/admin/membership-plans',
     },
     {
       icon: <Settings className="h-5 w-5" />,

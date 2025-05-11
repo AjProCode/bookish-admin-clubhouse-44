@@ -16,25 +16,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Pencil, Lock, Unlock } from 'lucide-react';
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  joinDate: string;
-  role: 'admin' | 'member';
-  status: 'active' | 'inactive';
-  booksRead: number;
-}
+import { MoreHorizontal, Pencil, Lock, Unlock, FileText } from 'lucide-react';
+import { UserDetails } from '@/models/UserBook';
 
 interface UserTableProps {
-  users: User[];
+  users: UserDetails[];
   onEdit: (id: string) => void;
+  onViewDetails: (id: string) => void;
   onToggleStatus: (id: string) => void;
 }
 
-const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onToggleStatus }) => {
+const UserTable: React.FC<UserTableProps> = ({ 
+  users, 
+  onEdit, 
+  onViewDetails,
+  onToggleStatus 
+}) => {
   return (
     <div className="border rounded-md overflow-hidden">
       <Table>
@@ -46,6 +43,7 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onToggleStatus }) 
             <TableHead>Role</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Books Read</TableHead>
+            <TableHead>Subscription</TableHead>
             <TableHead className="w-[80px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -72,6 +70,17 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onToggleStatus }) 
               </TableCell>
               <TableCell>{user.booksRead}</TableCell>
               <TableCell>
+                {user.subscription ? (
+                  <Badge variant="outline" className="border-blue-500 text-blue-500">
+                    {user.subscription.plan}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-gray-400 text-gray-500">
+                    none
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -79,6 +88,10 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onToggleStatus }) 
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onViewDetails(user.id)}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      View Details
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onEdit(user.id)}>
                       <Pencil className="h-4 w-4 mr-2" />
                       Edit

@@ -10,7 +10,7 @@ const AdminLayout: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex">
       <AdminSidebar />
       <div className={cn("flex-1 flex flex-col")}>
-        <AdminHeader />
+        <AdminHeader title="Admin Dashboard" />
         <div className="flex-1 p-6 overflow-auto">
           <Outlet />
         </div>
