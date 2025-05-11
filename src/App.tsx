@@ -11,6 +11,9 @@ import BooksPage from "./pages/BooksPage";
 import BookDetail from "./pages/BookDetail";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
+import BookshelfPage from "./pages/BookshelfPage";
+import ReadingLogPage from "./pages/ReadingLogPage";
+import BookReviewPage from "./pages/BookReviewPage";
 
 // Admin Pages
 import AdminLayout from "./layouts/AdminLayout";
@@ -32,6 +35,9 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/books" element={<BooksPage />} />
           <Route path="/books/:id" element={<BookDetail />} />
+          <Route path="/books/:id/review" element={<BookReviewPage />} />
+          <Route path="/bookshelf" element={<BookshelfPage />} />
+          <Route path="/reading-log" element={<ReadingLogPage />} />
           <Route path="/login" element={<LoginPage />} />
           
           {/* Admin Routes */}
