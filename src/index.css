@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 262 60% 60%;
+    --primary: 270 72% 58%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 28 95% 82%;
@@ -25,7 +25,7 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 258 82% 96%;
+    --accent: 270 86% 94%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
@@ -33,18 +33,18 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 262 60% 60%;
+    --ring: 270 72% 58%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 262 60% 60%;
+    --sidebar-primary: 270 72% 58%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 258 82% 96%;
+    --sidebar-accent: 270 86% 94%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 262 60% 60%;
+    --sidebar-ring: 270 72% 58%;
   }
 
   .dark {
@@ -57,7 +57,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 262 60% 60%;
+    --primary: 270 72% 58%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 28 95% 82%;
@@ -66,7 +66,7 @@
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 258 60% 30%;
+    --accent: 270 60% 30%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
@@ -78,12 +78,12 @@
     
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 262 60% 60%;
+    --sidebar-primary: 270 72% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 262 60% 60%;
+    --sidebar-ring: 270 72% 58%;
   }
 }
 
@@ -118,6 +118,30 @@
   .btn-gradient {
     @apply bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white;
   }
+
+  .card-gradient-purple {
+    @apply bg-gradient-to-br from-purple-100 to-indigo-50 border-purple-200;
+  }
+
+  .card-gradient-orange {
+    @apply bg-gradient-to-br from-orange-100 to-amber-50 border-orange-200;
+  }
+
+  .card-gradient-green {
+    @apply bg-gradient-to-br from-emerald-100 to-green-50 border-emerald-200;
+  }
+
+  .btn-gradient-purple {
+    @apply bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white;
+  }
+
+  .btn-gradient-orange {
+    @apply bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white;
+  }
+
+  .btn-gradient-emerald {
+    @apply bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white;
+  }
 }
 
 .book-cover {
@@ -147,8 +171,33 @@
   @apply bg-gradient-to-r from-purple-500 via-indigo-600 to-purple-500;
 }
 
+/* Logo styling to remove background */
+.logo-no-bg {
+  filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.1));
+}
+
 @keyframes gradient {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
+}
+
+/* Vibrant button hover effects */
+.btn-hover-glow:hover {
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+}
+
+/* Pulsing animation for important elements */
+@keyframes pulse-purple {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(139, 92, 246, 0); }
+}
+
+.pulse-animation {
+  animation: pulse-purple 2s infinite;
+}
+
+/* Add smooth transitions for all elements */
+* {
+  transition: all 0.2s ease;
 }

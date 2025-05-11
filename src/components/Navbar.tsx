@@ -10,8 +10,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Menu, User, BookOpen, BookText, LogOut } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { Menu, User, LogOut } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 const Navbar: React.FC = () => {
@@ -44,7 +44,7 @@ const Navbar: React.FC = () => {
     checkUser();
     
     // Listen for auth changes
-    const { subscription } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         setUser(session.user);
         // Check for admin role when signing in
@@ -69,7 +69,7 @@ const Navbar: React.FC = () => {
     });
     
     return () => {
-      subscription.unsubscribe();
+      authListener.subscription.unsubscribe();
     };
   }, []);
   

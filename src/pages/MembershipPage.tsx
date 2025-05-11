@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -17,7 +16,7 @@ import { cn } from '@/lib/utils';
 import MembershipStatusBar from '@/components/MembershipStatusBar';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 // Sample membership plans data
 const membershipPlans = [
@@ -443,12 +442,12 @@ const MembershipPage: React.FC = () => {
     fetchProfile();
     
     // Subscribe to auth changes
-    const { subscription } = supabase.auth.onAuthStateChange(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
       fetchProfile();
     });
     
     return () => {
-      subscription.unsubscribe();
+      authListener.subscription.unsubscribe();
     };
   }, []);
   

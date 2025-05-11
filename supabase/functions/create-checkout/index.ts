@@ -86,77 +86,80 @@ serve(async (req) => {
         .eq("id", user.id);
     }
     
-    // Map plan IDs to prices (in a real app, these would be actual Stripe price IDs)
-    // For demo purposes, we're creating test prices on the fly
-    const getPriceIdForPlan = async (planId: string) => {
-      // Check if price already exists
-      const prices = await stripe.prices.list({
-        lookup_keys: [planId],
-        limit: 1
-      });
-      
-      if (prices.data.length > 0) {
-        return prices.data[0].id;
-      }
-      
-      // Create product if needed
-      const products = await stripe.products.list({
+    // Map plan IDs to products and prices
+    let productName = "Monthly Book Subscription";
+    let amount = 1199;
+    let interval = "month";
+    let intervalCount = 1;
+    
+    switch(planId) {
+      case 'monthly':
+        amount = 1199;
+        productName = "Monthly Book Club";
+        intervalCount = 1;
+        break;
+      case 'quarterly':
+        amount = 3000;
+        productName = "Quarterly Book Club";
+        intervalCount = 3;
+        break;
+      case 'biannual':
+        amount = 5500;
+        productName = "Biannual Book Club";
+        intervalCount = 6;
+        break;
+      case 'annual':
+        amount = 10000;
+        productName = "Annual Book Club";
+        intervalCount = 12;
+        break;
+    }
+    
+    // Create a product for this subscription if it doesn't exist
+    const products = await stripe.products.list({
+      lookup_keys: [planId],
+      active: true
+    });
+    
+    let product;
+    if (products.data.length > 0) {
+      product = products.data[0];
+    } else {
+      product = await stripe.products.create({
+        name: productName,
         active: true,
-        limit: 1
+        lookup_key: planId,
+        metadata: {
+          plan: planId
+        }
       });
-      
-      let product;
-      if (products.data.length > 0) {
-        product = products.data[0];
-      } else {
-        product = await stripe.products.create({
-          name: 'Skillbag Book Subscription',
-          description: 'Monthly book delivery for children',
-          active: true,
-        });
-      }
-      
-      // Define pricing based on plan
-      let amount = 0;
-      let interval = 'month';
-      let intervalCount = 1;
-      
-      switch(planId) {
-        case 'monthly':
-          amount = 1199;
-          break;
-        case 'quarterly':
-          amount = 3000;
-          intervalCount = 3;
-          break;
-        case 'biannual':
-          amount = 5500;
-          intervalCount = 6;
-          break;
-        case 'annual':
-          amount = 10000;
-          intervalCount = 12;
-          break;
-        default:
-          amount = 1199;
-      }
-      
-      // Create new price
-      const price = await stripe.prices.create({
+    }
+    
+    // Check for existing price or create one
+    const prices = await stripe.prices.list({
+      product: product.id,
+      active: true,
+      type: 'recurring',
+      currency: 'inr'
+    });
+    
+    let price;
+    if (prices.data.length > 0) {
+      price = prices.data[0];
+    } else {
+      price = await stripe.prices.create({
         product: product.id,
-        unit_amount: amount,
         currency: 'inr',
+        unit_amount: amount,
         recurring: {
           interval,
-          interval_count: intervalCount,
+          interval_count: intervalCount
         },
-        lookup_key: planId,
+        metadata: {
+          plan: planId
+        }
       });
-      
-      return price.id;
-    };
-    
-    const priceId = await getPriceIdForPlan(planId);
+    }
     
     // Create a new checkout session
     const session = await stripe.checkout.sessions.create({
@@ -164,7 +167,7 @@ serve(async (req) => {
       payment_method_types: ["card"],
       line_items: [
         {
-          price: priceId,
+          price: price.id,
           quantity: 1,
         },
       ],

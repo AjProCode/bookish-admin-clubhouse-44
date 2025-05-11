@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MembershipRequiredProps {
   children: React.ReactNode;
@@ -15,17 +15,7 @@ const MembershipRequired: React.FC<MembershipRequiredProps> = ({ children }) => 
   const location = useLocation();
 
   useEffect(() => {
-    // Check if Supabase is configured properly
-    if (!isSupabaseConfigured()) {
-      toast({
-        title: "Configuration Error",
-        description: "Authentication service is not properly configured",
-        variant: "destructive"
-      });
-      setIsLoading(false);
-      return;
-    }
-
+    // Check if user has a subscription
     const checkSubscription = async () => {
       try {
         // Check if user is authenticated
@@ -59,7 +49,7 @@ const MembershipRequired: React.FC<MembershipRequiredProps> = ({ children }) => 
         }
         
         // Check if user has an active subscription
-        const hasActiveSub = data.subscriptions &&
+        const hasActiveSub = data?.subscriptions &&
                           data.subscriptions.length > 0 &&
                           data.subscriptions[0].status === 'active';
         
@@ -74,12 +64,12 @@ const MembershipRequired: React.FC<MembershipRequiredProps> = ({ children }) => 
     checkSubscription();
     
     // Subscribe to auth changes
-    const { subscription } = supabase.auth.onAuthStateChange(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
       checkSubscription();
     });
     
     return () => {
-      subscription.unsubscribe();
+      authListener.subscription.unsubscribe();
     };
   }, []);
   
