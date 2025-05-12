@@ -18,6 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import GoogleBookSearch from './GoogleBookSearch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Book } from '../BookCard';
 
 interface BookFormProps {
@@ -63,6 +65,24 @@ const BookForm: React.FC<BookFormProps> = ({
     onSubmit(processedData);
   };
 
+  const handleGoogleBookSelect = (bookData: {
+    title: string;
+    author: string;
+    description: string;
+    coverImage: string;
+    categories: string[];
+    rating: number;
+  }) => {
+    setFormData({
+      title: bookData.title,
+      author: bookData.author,
+      coverImage: bookData.coverImage,
+      description: bookData.description,
+      rating: bookData.rating.toString(),
+      categories: bookData.categories.join(', '),
+    });
+  };
+
   return (
     <form onSubmit={handleSubmit}>
       <Card>
@@ -70,6 +90,19 @@ const BookForm: React.FC<BookFormProps> = ({
           <CardTitle>{book ? 'Edit Book' : 'Add New Book'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Tabs defaultValue="manual" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="manual" className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white">Manual Entry</TabsTrigger>
+              <TabsTrigger value="search" className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white">Search Google Books</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="search">
+              <div className="mb-6">
+                <GoogleBookSearch onSelectBook={handleGoogleBookSelect} />
+              </div>
+            </TabsContent>
+          </Tabs>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
@@ -103,6 +136,11 @@ const BookForm: React.FC<BookFormProps> = ({
               onChange={handleChange}
               placeholder="https://example.com/image.jpg"
             />
+            {formData.coverImage && (
+              <div className="mt-2 w-24 h-32 overflow-hidden rounded border">
+                <img src={formData.coverImage} alt="Cover preview" className="w-full h-full object-cover" />
+              </div>
+            )}
           </div>
           
           <div className="space-y-2">
@@ -154,7 +192,7 @@ const BookForm: React.FC<BookFormProps> = ({
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading} className="bg-indigo-600 hover:bg-indigo-700">
             {isLoading ? 'Saving...' : (book ? 'Update' : 'Save')}
           </Button>
         </CardFooter>

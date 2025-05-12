@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import UserChildDetails from './UserChildDetails';
 import { UserDetails, UserSubscription, SubscriptionPlan, UserBook } from "@/models/UserBook";
 
 interface UserDetailsViewProps {
@@ -144,6 +145,7 @@ const UserDetailsView: React.FC<UserDetailsViewProps> = ({
               <Button 
                 size="sm" 
                 onClick={() => setShowSubscriptionForm(!showSubscriptionForm)}
+                className="bg-indigo-600 hover:bg-indigo-700"
               >
                 {showSubscriptionForm ? 'Cancel' : 'Edit Subscription'}
               </Button>
@@ -207,7 +209,7 @@ const UserDetailsView: React.FC<UserDetailsViewProps> = ({
                   </div>
                   
                   <div className="flex justify-end">
-                    <Button type="submit">Save Changes</Button>
+                    <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">Save Changes</Button>
                   </div>
                 </form>
               ) : (
@@ -264,11 +266,43 @@ const UserDetailsView: React.FC<UserDetailsViewProps> = ({
         </div>
       </div>
 
-      <Tabs defaultValue="readingLogs">
-        <TabsList className="grid grid-cols-2">
-          <TabsTrigger value="readingLogs">Reading Logs</TabsTrigger>
-          <TabsTrigger value="bookshelf">Bookshelf</TabsTrigger>
+      <Tabs defaultValue="children">
+        <TabsList className="grid grid-cols-3">
+          <TabsTrigger value="children" className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white">Children</TabsTrigger>
+          <TabsTrigger value="readingLogs" className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white">Reading Logs</TabsTrigger>
+          <TabsTrigger value="bookshelf" className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white">Bookshelf</TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="children" className="p-4 border rounded-lg mt-4">
+          <h3 className="text-lg font-semibold mb-4">Children's Reading Details</h3>
+          
+          {user.readingLogs && user.readingLogs.length > 0 ? (
+            <div className="space-y-6">
+              <UserChildDetails 
+                childId="child1"
+                childName={`${user.name}'s Child`}
+                readingLogs={user.readingLogs}
+                booksRead={user.booksRead}
+                age={10}
+                readingLevel="Intermediate"
+                favoriteGenres={['Adventure', 'Fantasy', 'Science']}
+                readingTimeByDay={[
+                  { day: 'Mon', minutes: 45 },
+                  { day: 'Tue', minutes: 30 },
+                  { day: 'Wed', minutes: 60 },
+                  { day: 'Thu', minutes: 20 },
+                  { day: 'Fri', minutes: 15 },
+                  { day: 'Sat', minutes: 90 },
+                  { day: 'Sun', minutes: 75 },
+                ]}
+              />
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              No children's reading data found
+            </div>
+          )}
+        </TabsContent>
         
         <TabsContent value="readingLogs" className="p-4 border rounded-lg mt-4">
           <h3 className="text-lg font-semibold mb-4">Reading Activity</h3>

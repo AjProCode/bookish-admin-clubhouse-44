@@ -63,13 +63,13 @@ const LoginPage: React.FC = () => {
         });
         
         // Check for admin role
-        const { data: profile } = await supabase
+        const { data: profileData } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .single();
         
-        if (profile?.role === 'admin') {
+        if (profileData?.role === 'admin') {
           navigate('/admin');
         } else {
           navigate('/bookshelf');
@@ -127,7 +127,7 @@ const LoginPage: React.FC = () => {
         // Create a profile record for the user
         await supabase
           .from('profiles')
-          .upsert({
+          .insert({
             id: data.user.id,
             email: registerEmail,
             first_name: firstName,
@@ -139,7 +139,7 @@ const LoginPage: React.FC = () => {
         
         toast({
           title: "Registration successful",
-          description: "Your account has been created and you're now logged in.",
+          description: "Your account has been created. Please check your email for verification link.",
         });
         
         navigate('/membership');
@@ -151,8 +151,8 @@ const LoginPage: React.FC = () => {
   };
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-100 via-blue-100 to-cyan-100 p-4">
-      <Link to="/" className="absolute top-4 left-4 text-blue-600 hover:text-blue-800 transition-colors">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 p-4">
+      <Link to="/" className="absolute top-4 left-4 text-indigo-600 hover:text-indigo-800 transition-colors">
         ← Back to Home
       </Link>
       
@@ -162,25 +162,25 @@ const LoginPage: React.FC = () => {
             <img 
               src="/lovable-uploads/645f9f6e-de35-4451-8744-d12fc8979b30.png" 
               alt="Skillbag Logo" 
-              className="h-12 mx-auto logo-no-bg" 
+              className="h-12 mx-auto" 
             />
           </div>
-          <h1 className="text-2xl font-bold text-blue-800">Welcome to Skillbag!</h1>
-          <p className="text-blue-600">Sign in to access your account or join us.</p>
+          <h1 className="text-2xl font-bold text-indigo-800">Welcome to Skillbag!</h1>
+          <p className="text-indigo-600">Sign in to access your account or join us.</p>
         </div>
         
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="login" data-value="login" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">Login</TabsTrigger>
-            <TabsTrigger value="register" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">Register</TabsTrigger>
+            <TabsTrigger value="login" data-value="login" className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white">Login</TabsTrigger>
+            <TabsTrigger value="register" className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white">Register</TabsTrigger>
           </TabsList>
           
           <TabsContent value="login">
-            <Card className="border border-blue-200 shadow-lg">
+            <Card className="border border-indigo-200 shadow-lg">
               <form onSubmit={handleLogin}>
                 <CardHeader>
-                  <CardTitle className="text-blue-800">Login</CardTitle>
-                  <CardDescription className="text-blue-600">
+                  <CardTitle className="text-indigo-800">Login</CardTitle>
+                  <CardDescription className="text-indigo-600">
                     Enter your credentials to access your account.
                   </CardDescription>
                 </CardHeader>
@@ -191,7 +191,7 @@ const LoginPage: React.FC = () => {
                     </div>
                   )}
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-blue-700">Email</Label>
+                    <Label htmlFor="email" className="text-indigo-700">Email</Label>
                     <Input 
                       id="email" 
                       type="email" 
@@ -199,13 +199,13 @@ const LoginPage: React.FC = () => {
                       required 
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
-                      className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                      className="border-indigo-200 focus:border-indigo-400 focus:ring-indigo-400"
                     />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password" className="text-blue-700">Password</Label>
-                      <Link to="/forgot-password" className="text-xs text-blue-600 hover:underline">
+                      <Label htmlFor="password" className="text-indigo-700">Password</Label>
+                      <Link to="/forgot-password" className="text-xs text-indigo-600 hover:underline">
                         Forgot password?
                       </Link>
                     </div>
@@ -216,12 +216,12 @@ const LoginPage: React.FC = () => {
                       required 
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
-                      className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                      className="border-indigo-200 focus:border-indigo-400 focus:ring-indigo-400"
                     />
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox id="remember" className="text-blue-500" />
-                    <label htmlFor="remember" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-blue-700">
+                    <Checkbox id="remember" className="text-indigo-500" />
+                    <label htmlFor="remember" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-indigo-700">
                       Remember me
                     </label>
                   </div>
@@ -229,7 +229,7 @@ const LoginPage: React.FC = () => {
                 <CardFooter>
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-blue-500 to-sky-600 hover:from-blue-600 hover:to-sky-700" 
+                    className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? 'Signing In...' : 'Sign In'}
@@ -240,11 +240,11 @@ const LoginPage: React.FC = () => {
           </TabsContent>
           
           <TabsContent value="register">
-            <Card className="border border-blue-200 shadow-lg">
+            <Card className="border border-indigo-200 shadow-lg">
               <form onSubmit={handleRegister}>
                 <CardHeader>
-                  <CardTitle className="text-blue-800">Create Account</CardTitle>
-                  <CardDescription className="text-blue-600">
+                  <CardTitle className="text-indigo-800">Create Account</CardTitle>
+                  <CardDescription className="text-indigo-600">
                     Join our book club community today.
                   </CardDescription>
                 </CardHeader>
@@ -256,30 +256,30 @@ const LoginPage: React.FC = () => {
                   )}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="firstName" className="text-blue-700">First Name</Label>
+                      <Label htmlFor="firstName" className="text-indigo-700">First Name</Label>
                       <Input 
                         id="firstName" 
                         placeholder="John" 
                         required 
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                        className="border-indigo-200 focus:border-indigo-400 focus:ring-indigo-400"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lastName" className="text-blue-700">Last Name</Label>
+                      <Label htmlFor="lastName" className="text-indigo-700">Last Name</Label>
                       <Input 
                         id="lastName" 
                         placeholder="Doe" 
                         required 
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                        className="border-indigo-200 focus:border-indigo-400 focus:ring-indigo-400"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email-register" className="text-blue-700">Email</Label>
+                    <Label htmlFor="email-register" className="text-indigo-700">Email</Label>
                     <Input 
                       id="email-register" 
                       type="email" 
@@ -287,11 +287,11 @@ const LoginPage: React.FC = () => {
                       required 
                       value={registerEmail}
                       onChange={(e) => setRegisterEmail(e.target.value)}
-                      className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                      className="border-indigo-200 focus:border-indigo-400 focus:ring-indigo-400"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password-register" className="text-blue-700">Password</Label>
+                    <Label htmlFor="password-register" className="text-indigo-700">Password</Label>
                     <Input 
                       id="password-register" 
                       type="password" 
@@ -299,11 +299,11 @@ const LoginPage: React.FC = () => {
                       required 
                       value={registerPassword}
                       onChange={(e) => setRegisterPassword(e.target.value)}
-                      className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                      className="border-indigo-200 focus:border-indigo-400 focus:ring-indigo-400"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="confirm-password" className="text-blue-700">Confirm Password</Label>
+                    <Label htmlFor="confirm-password" className="text-indigo-700">Confirm Password</Label>
                     <Input 
                       id="confirm-password" 
                       type="password" 
@@ -311,7 +311,7 @@ const LoginPage: React.FC = () => {
                       required 
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                      className="border-indigo-200 focus:border-indigo-400 focus:ring-indigo-400"
                     />
                   </div>
                   <div className="flex items-center space-x-2">
@@ -320,17 +320,17 @@ const LoginPage: React.FC = () => {
                       required 
                       checked={agreeToTerms}
                       onCheckedChange={(checked) => setAgreeToTerms(checked as boolean)}
-                      className="text-blue-500"
+                      className="text-indigo-500"
                     />
-                    <label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-blue-700">
-                      I agree to the <Link to="/terms" className="text-blue-600 hover:underline">terms of service</Link> and <Link to="/privacy" className="text-blue-600 hover:underline">privacy policy</Link>
+                    <label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-indigo-700">
+                      I agree to the <Link to="/terms" className="text-indigo-600 hover:underline">terms of service</Link> and <Link to="/privacy" className="text-indigo-600 hover:underline">privacy policy</Link>
                     </label>
                   </div>
                 </CardContent>
                 <CardFooter>
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-blue-500 to-sky-600 hover:from-blue-600 hover:to-sky-700" 
+                    className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? 'Creating Account...' : 'Create Account'}

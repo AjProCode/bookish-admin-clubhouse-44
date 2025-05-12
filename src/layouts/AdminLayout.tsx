@@ -1,10 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -14,7 +15,8 @@ const AdminLayout: React.FC = () => {
     const checkAdmin = async () => {
       try {
         // Check if user is authenticated
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData.session;
         if (!session) {
           toast({
             title: "Authentication Required",
