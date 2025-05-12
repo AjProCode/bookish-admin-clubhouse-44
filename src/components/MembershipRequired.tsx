@@ -50,8 +50,10 @@ const MembershipRequired: React.FC<MembershipRequiredProps> = ({ children }) => 
         
         // Check if user has an active subscription
         const hasActiveSub = data?.subscriptions &&
+                          Array.isArray(data.subscriptions) &&
                           data.subscriptions.length > 0 &&
-                          data.subscriptions[0].status === 'active';
+                          typeof data.subscriptions[0] === 'object' &&
+                          data.subscriptions[0]?.status === 'active';
         
         setHasSubscription(hasActiveSub);
       } catch (error) {

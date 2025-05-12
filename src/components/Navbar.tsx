@@ -29,13 +29,13 @@ const Navbar: React.FC = () => {
         setUser(session.user);
         
         // Check if user has admin role
-        const { data: profile, error } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .single();
         
-        if (!error && profile?.role === 'admin') {
+        if (profile && profile.role === 'admin') {
           setIsAdmin(true);
         }
       }
@@ -44,24 +44,21 @@ const Navbar: React.FC = () => {
     checkUser();
     
     // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
         setUser(session.user);
         // Check for admin role when signing in
-        const checkAdminRole = async () => {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (!error && profile?.role === 'admin') {
-            setIsAdmin(true);
-          } else {
-            setIsAdmin(false);
-          }
-        };
-        checkAdminRole();
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (profile && profile.role === 'admin') {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setIsAdmin(false);
@@ -85,44 +82,44 @@ const Navbar: React.FC = () => {
   };
   
   return (
-    <header className="bg-gradient-to-r from-purple-100 to-indigo-100 shadow-sm sticky top-0 z-50">
+    <header className="bg-gradient-to-r from-sky-100 to-blue-100 shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <img 
             src="/lovable-uploads/645f9f6e-de35-4451-8744-d12fc8979b30.png" 
             alt="Skillbag Logo" 
-            className="h-8"
+            className="h-8 logo-no-bg"
           />
         </Link>
 
         {isMobile ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-purple-700">
+              <Button variant="ghost" size="icon" className="text-blue-700">
                 <Menu className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-white border border-purple-200">
+            <DropdownMenuContent align="end" className="w-56 bg-white border border-blue-200">
               <DropdownMenuItem asChild>
-                <Link to="/" className="w-full hover:text-purple-700">Home</Link>
+                <Link to="/" className="w-full hover:text-blue-700">Home</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/books" className="w-full hover:text-purple-700">Browse Books</Link>
+                <Link to="/books" className="w-full hover:text-blue-700">Browse Books</Link>
               </DropdownMenuItem>
               {user ? (
                 <>
                   <DropdownMenuItem asChild>
-                    <Link to="/bookshelf" className="w-full hover:text-purple-700">My Bookshelf</Link>
+                    <Link to="/bookshelf" className="w-full hover:text-blue-700">My Bookshelf</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/reading-log" className="w-full hover:text-purple-700">Reading Log</Link>
+                    <Link to="/reading-log" className="w-full hover:text-blue-700">Reading Log</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/membership" className="w-full hover:text-purple-700">Membership</Link>
+                    <Link to="/membership" className="w-full hover:text-blue-700">Membership</Link>
                   </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem asChild>
-                      <Link to="/admin" className="w-full hover:text-purple-700">Admin</Link>
+                      <Link to="/admin" className="w-full hover:text-blue-700">Admin</Link>
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
@@ -132,30 +129,30 @@ const Navbar: React.FC = () => {
                 </>
               ) : (
                 <DropdownMenuItem asChild>
-                  <Link to="/login" className="w-full hover:text-purple-700">Login</Link>
+                  <Link to="/login" className="w-full hover:text-blue-700">Login</Link>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
           <nav className="flex items-center gap-6">
-            <Link to="/" className="text-purple-700 hover:text-purple-900 transition-colors">Home</Link>
-            <Link to="/books" className="text-purple-700 hover:text-purple-900 transition-colors">Browse Books</Link>
+            <Link to="/" className="text-blue-700 hover:text-blue-900 transition-colors">Home</Link>
+            <Link to="/books" className="text-blue-700 hover:text-blue-900 transition-colors">Browse Books</Link>
             {user ? (
               <>
-                <Link to="/bookshelf" className="text-purple-700 hover:text-purple-900 transition-colors">My Bookshelf</Link>
-                <Link to="/reading-log" className="text-purple-700 hover:text-purple-900 transition-colors">Reading Log</Link>
-                <Link to="/membership" className="text-purple-700 hover:text-purple-900 transition-colors">Membership</Link>
+                <Link to="/bookshelf" className="text-blue-700 hover:text-blue-900 transition-colors">My Bookshelf</Link>
+                <Link to="/reading-log" className="text-blue-700 hover:text-blue-900 transition-colors">Reading Log</Link>
+                <Link to="/membership" className="text-blue-700 hover:text-blue-900 transition-colors">Membership</Link>
                 {isAdmin && (
-                  <Link to="/admin" className="text-purple-700 hover:text-purple-900 transition-colors">Admin</Link>
+                  <Link to="/admin" className="text-blue-700 hover:text-blue-900 transition-colors">Admin</Link>
                 )}
-                <Button variant="outline" size="sm" className="flex items-center gap-2 border-purple-500 text-purple-700 hover:bg-purple-50" onClick={handleLogout}>
+                <Button variant="outline" size="sm" className="flex items-center gap-2 border-blue-500 text-blue-700 hover:bg-blue-50" onClick={handleLogout}>
                   <LogOut className="h-4 w-4" />
                   <span>Logout</span>
                 </Button>
               </>
             ) : (
-              <Button variant="outline" size="sm" className="flex items-center gap-2 border-purple-500 text-purple-700 hover:bg-purple-50" asChild>
+              <Button variant="outline" size="sm" className="flex items-center gap-2 border-blue-500 text-blue-700 hover:bg-blue-50" asChild>
                 <Link to="/login">
                   <User className="h-4 w-4" />
                   <span>Login</span>

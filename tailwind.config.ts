@@ -64,16 +64,16 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				bookclub: {
-					primary: '#8B5CF6', // Brighter purple
-					secondary: '#FEC88A', 
-					accent: '#E5DEFF', 
-					muted: '#F1F0FB',
+					primary: '#0EA5E9', // Bright blue (matches logo)
+					secondary: '#38BDF8', // Lighter blue
+					accent: '#BAE6FD', // Very light blue
+					muted: '#F0F9FF',
 					background: '#FFFFFF',
-					text: '#333333',
-					highlight: '#D946EF', // Added vibrant pink highlight
+					text: '#0F172A', // Dark blue text
+					highlight: '#06B6D4', // Cyan highlight 
 					success: '#10B981', // Vibrant green
 					warning: '#F97316', // Vibrant orange
-					info: '#0EA5E9', // Vibrant blue
+					info: '#0284C7', // Darker blue
 				}
 			},
 			borderRadius: {
