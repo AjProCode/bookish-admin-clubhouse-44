@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -44,22 +45,21 @@ const LoginPage: React.FC = () => {
     setIsSubmitting(true);
     
     try {
+      console.log("Attempting login with:", loginEmail);
       const { data, error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: loginPassword,
       });
       
       if (error) {
+        console.error("Login error:", error);
         setLoginError(error.message);
         setIsSubmitting(false);
         return;
       }
       
       if (data.user) {
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${data.user.email}!`,
-        });
+        console.log("Login successful:", data.user);
         
         // Check for admin role
         const { data: profileData, error: profileError } = await supabase
@@ -68,13 +68,24 @@ const LoginPage: React.FC = () => {
           .eq('id', data.user.id)
           .maybeSingle();
         
-        if (!profileError && profileData?.role === 'admin') {
+        if (profileError) {
+          console.error("Error fetching profile:", profileError);
+        }
+        
+        toast({
+          title: "Login successful",
+          description: `Welcome back, ${loginEmail}!`,
+        });
+        
+        if (profileData?.role === 'admin') {
+          console.log("Admin user detected");
           navigate('/admin');
         } else {
           navigate('/bookshelf');
         }
       }
     } catch (error: any) {
+      console.error("Exception during login:", error);
       setLoginError(error.message || 'An error occurred during login');
       setIsSubmitting(false);
     }
@@ -104,6 +115,7 @@ const LoginPage: React.FC = () => {
     
     try {
       // Create new user
+      console.log("Attempting registration with:", registerEmail);
       const { data, error } = await supabase.auth.signUp({
         email: registerEmail,
         password: registerPassword,
@@ -117,12 +129,15 @@ const LoginPage: React.FC = () => {
       });
       
       if (error) {
+        console.error("Registration error:", error);
         setRegistrationError(error.message);
         setIsSubmitting(false);
         return;
       }
       
       if (data.user) {
+        console.log("Registration successful:", data.user);
+        
         // Create a profile record for the user using RPC to avoid type issues
         const { error: insertError } = await supabase.rpc('create_profile', {
           user_id: data.user.id,
@@ -143,6 +158,7 @@ const LoginPage: React.FC = () => {
         navigate('/membership');
       }
     } catch (error: any) {
+      console.error("Exception during registration:", error);
       setRegistrationError(error.message || 'An error occurred during registration');
       setIsSubmitting(false);
     }

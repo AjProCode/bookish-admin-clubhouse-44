@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,7 @@ const Navbar: React.FC = () => {
     
     // Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth event:", event);
       if (event === 'SIGNED_IN' && session) {
         setUser(session.user);
         // Check for admin role when signing in
@@ -70,14 +72,33 @@ const Navbar: React.FC = () => {
   }, []);
   
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setIsAdmin(false);
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully."
-    });
-    navigate('/');
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Error during logout:", error);
+        toast({
+          title: "Logout failed",
+          description: "There was an error logging out. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setUser(null);
+      setIsAdmin(false);
+      toast({
+        title: "Logged out",
+        description: "You have been logged out successfully."
+      });
+      navigate('/');
+    } catch (error) {
+      console.error("Exception during logout:", error);
+      toast({
+        title: "Logout failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   return (
@@ -146,7 +167,12 @@ const Navbar: React.FC = () => {
                 {isAdmin && (
                   <Link to="/admin" className="text-indigo-700 hover:text-indigo-900 transition-colors">Admin</Link>
                 )}
-                <Button variant="outline" size="sm" className="flex items-center gap-2 border-indigo-500 text-indigo-700 hover:bg-indigo-50" onClick={handleLogout}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-2 border-indigo-500 text-indigo-700 hover:bg-indigo-50" 
+                  onClick={handleLogout}
+                >
                   <LogOut className="h-4 w-4" />
                   <span>Logout</span>
                 </Button>

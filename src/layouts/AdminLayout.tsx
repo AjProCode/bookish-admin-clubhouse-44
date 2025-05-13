@@ -34,7 +34,19 @@ const AdminLayout: React.FC = () => {
           .eq('id', session.user.id)
           .maybeSingle();
         
-        if (error || !data || data.role !== 'admin') {
+        if (error) {
+          console.error("Error checking admin status:", error);
+          toast({
+            title: "Access Denied",
+            description: "Could not verify admin permissions",
+            variant: "destructive"
+          });
+          navigate('/');
+          return;
+        }
+        
+        if (!data || data.role !== 'admin') {
+          console.log("Admin check failed:", data);
           toast({
             title: "Access Denied",
             description: "You do not have permission to access the admin panel",
