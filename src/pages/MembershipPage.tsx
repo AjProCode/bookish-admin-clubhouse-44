@@ -419,7 +419,7 @@ const MembershipPage: React.FC = () => {
             )
           `)
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.error("Error fetching profile", error);
@@ -429,7 +429,7 @@ const MembershipPage: React.FC = () => {
         if (data) {
           setProfile({
             id: data.id,
-            subscription: data.subscriptions && data.subscriptions.length > 0 ? {
+            subscription: data.subscriptions && Array.isArray(data.subscriptions) && data.subscriptions.length > 0 ? {
               plan: data.subscriptions[0].plan
             } : undefined
           });

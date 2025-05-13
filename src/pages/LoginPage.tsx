@@ -67,7 +67,7 @@ const LoginPage: React.FC = () => {
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
-          .single();
+          .maybeSingle();
         
         if (!profileError && profileData?.role === 'admin') {
           navigate('/admin');

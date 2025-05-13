@@ -40,7 +40,7 @@ const MembershipRequired: React.FC<MembershipRequiredProps> = ({ children }) => 
             )
           `)
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.error("Error checking subscription:", error);

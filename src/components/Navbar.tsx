@@ -33,7 +33,7 @@ const Navbar: React.FC = () => {
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
         
         if (!error && profileData?.role === 'admin') {
           setIsAdmin(true);
@@ -52,7 +52,7 @@ const Navbar: React.FC = () => {
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
         
         if (!error && profileData?.role === 'admin') {
           setIsAdmin(true);

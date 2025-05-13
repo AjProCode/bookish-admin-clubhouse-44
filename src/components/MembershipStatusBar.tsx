@@ -63,14 +63,14 @@ const MembershipStatusBar: React.FC = () => {
         
         if (data) {
           setProfile({
-            id: data.id,
+            id: data.id || "",
             email: data.email || user.email || "",
             first_name: data.first_name || "",
             last_name: data.last_name || "",
             subscription: data.subscriptions && Array.isArray(data.subscriptions) && data.subscriptions.length > 0 ? {
-              status: data.subscriptions[0].status,
-              plan: data.subscriptions[0].plan,
-              end_date: data.subscriptions[0].end_date,
+              status: data.subscriptions[0].status || "",
+              plan: data.subscriptions[0].plan || "",
+              end_date: data.subscriptions[0].end_date || "",
               next_delivery_date: data.subscriptions[0].next_delivery_date
             } : undefined
           });

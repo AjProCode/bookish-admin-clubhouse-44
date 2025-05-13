@@ -32,7 +32,7 @@ const AdminLayout: React.FC = () => {
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
         
         if (error || !data || data.role !== 'admin') {
           toast({

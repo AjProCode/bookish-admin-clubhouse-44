@@ -39,7 +39,7 @@ const AdminBooks: React.FC = () => {
           title: book.title,
           author: book.author,
           description: book.description || '',
-          coverImage: book.coverImage || '',
+          coverImage: book.coverimage || '', // Fixed: coverimage -> coverImage
           categories: book.categories || [],
           rating: book.rating || 0,
         }));
@@ -65,7 +65,7 @@ const AdminBooks: React.FC = () => {
           title: bookData.title || '',
           author: bookData.author || '',
           description: bookData.description || '',
-          coverImage: bookData.coverImage || '',
+          coverimage: bookData.coverImage || '', // Fixed: coverImage -> coverimage
           categories: bookData.categories || [],
           rating: bookData.rating || 0
         })
@@ -80,7 +80,7 @@ const AdminBooks: React.FC = () => {
           title: data.title,
           author: data.author,
           description: data.description || '',
-          coverImage: data.coverImage || '',
+          coverImage: data.coverimage || '', // Fixed: coverimage -> coverImage
           categories: data.categories || [],
           rating: data.rating || 0
         }]);
@@ -120,7 +120,7 @@ const AdminBooks: React.FC = () => {
           title: bookData.title || '',
           author: bookData.author || '',
           description: bookData.description || '',
-          coverImage: bookData.coverImage || '',
+          coverimage: bookData.coverImage || '', // Fixed: coverImage -> coverimage
           categories: bookData.categories || [],
           rating: bookData.rating || 0
         })
@@ -137,7 +137,7 @@ const AdminBooks: React.FC = () => {
             title: data.title,
             author: data.author,
             description: data.description || '',
-            coverImage: data.coverImage || '',
+            coverImage: data.coverimage || '', // Fixed: coverimage -> coverImage
             categories: data.categories || [],
             rating: data.rating || 0
           } : book
