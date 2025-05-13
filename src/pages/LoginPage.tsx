@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -164,7 +163,7 @@ const LoginPage: React.FC = () => {
               className="h-12 mx-auto" 
             />
           </div>
-          <h1 className="text-2xl font-bold text-indigo-800">Welcome to Skillbag!</h1>
+          <h1 className="text-3xl font-bold text-indigo-800">Welcome to Skillbag!</h1>
           <p className="text-indigo-600">Sign in to access your account or join us.</p>
         </div>
         

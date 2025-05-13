@@ -34,6 +34,7 @@ const MembershipRequired: React.FC<MembershipRequiredProps> = ({ children }) => 
         const { data, error } = await supabase
           .from('profiles')
           .select(`
+            id,
             subscriptions (
               status,
               plan

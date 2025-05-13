@@ -7,9 +7,9 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface UserProfile {
   id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
+  email: string | null;
+  first_name: string | null;
+  last_name: string | null;
   subscription?: {
     status: string;
     plan: string;
@@ -53,7 +53,7 @@ const MembershipStatusBar: React.FC = () => {
             )
           `)
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.error("Error fetching profile", error);
@@ -64,7 +64,7 @@ const MembershipStatusBar: React.FC = () => {
         if (data) {
           setProfile({
             id: data.id || "",
-            email: data.email || user.email || "",
+            email: data.email || user.email,
             first_name: data.first_name || "",
             last_name: data.last_name || "",
             subscription: data.subscriptions && Array.isArray(data.subscriptions) && data.subscriptions.length > 0 ? {
