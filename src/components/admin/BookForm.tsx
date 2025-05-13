@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -35,7 +35,7 @@ const BookForm: React.FC<BookFormProps> = ({
   onCancel,
   isLoading = false,
 }) => {
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     title: book?.title || '',
     author: book?.author || '',
     coverImage: book?.coverImage || '',
@@ -43,6 +43,8 @@ const BookForm: React.FC<BookFormProps> = ({
     rating: book?.rating?.toString() || '0',
     categories: book?.categories?.join(', ') || '',
   });
+
+  const [activeTab, setActiveTab] = useState('manual');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -81,6 +83,7 @@ const BookForm: React.FC<BookFormProps> = ({
       rating: bookData.rating.toString(),
       categories: bookData.categories.join(', '),
     });
+    setActiveTab('manual'); // Switch to manual tab so user can see populated data
   };
 
   return (
@@ -90,7 +93,7 @@ const BookForm: React.FC<BookFormProps> = ({
           <CardTitle>{book ? 'Edit Book' : 'Add New Book'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Tabs defaultValue="manual" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="manual" className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white">Manual Entry</TabsTrigger>
               <TabsTrigger value="search" className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white">Search Google Books</TabsTrigger>

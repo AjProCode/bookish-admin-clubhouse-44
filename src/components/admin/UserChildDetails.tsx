@@ -7,13 +7,23 @@ import { Badge } from '@/components/ui/badge';
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Calendar, Clock, BookOpen, BarChart2 } from 'lucide-react';
 import { UserReadingLog } from '@/models/UserBook';
+import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Book {
+  id: string;
+  title: string;
+  author: string;
+  coverImage?: string;
+}
 
 interface ChildDetailsProps {
   childId: string;
   childName: string;
   readingLogs: UserReadingLog[];
   booksRead: number;
-  age?: number;
+  age?: number | string;
   readingLevel?: string;
   favoriteGenres?: string[];
   readingTimeByDay?: Array<{ day: string; minutes: number }>;
@@ -37,6 +47,41 @@ const UserChildDetails: React.FC<ChildDetailsProps> = ({
     { day: 'Sun', minutes: 0 },
   ],
 }) => {
+  const [books, setBooks] = useState<Record<string, Book>>({});
+  
+  // Load books data
+  useEffect(() => {
+    const fetchBooks = async () => {
+      const bookIds = Array.from(new Set(readingLogs.map(log => log.bookId)));
+      
+      if (bookIds.length === 0) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('books')
+          .select('id, title, author, coverImage')
+          .in('id', bookIds);
+          
+        if (error) {
+          console.error("Error fetching books:", error);
+          return;
+        }
+        
+        if (data) {
+          const booksMap: Record<string, Book> = {};
+          data.forEach(book => {
+            booksMap[book.id] = book;
+          });
+          setBooks(booksMap);
+        }
+      } catch (err) {
+        console.error("Error in fetchBooks:", err);
+      }
+    };
+    
+    fetchBooks();
+  }, [readingLogs]);
+  
   // Process reading logs to populate readingTimeByDay
   const processedReadingTimeByDay = [...readingTimeByDay];
   
@@ -53,6 +98,10 @@ const UserChildDetails: React.FC<ChildDetailsProps> = ({
   // Calculate total reading time
   const totalReadingTime = readingLogs.reduce((total, log) => total + log.minutesRead, 0);
   const totalPagesRead = readingLogs.reduce((total, log) => total + log.pagesRead, 0);
+  
+  const getBookTitle = (bookId: string) => {
+    return books[bookId]?.title || bookId;
+  };
   
   return (
     <Card className="w-full">
@@ -124,7 +173,7 @@ const UserChildDetails: React.FC<ChildDetailsProps> = ({
                             year: 'numeric'
                           })}
                         </TableCell>
-                        <TableCell>{log.bookId}</TableCell>
+                        <TableCell>{getBookTitle(log.bookId)}</TableCell>
                         <TableCell>{log.minutesRead} minutes</TableCell>
                         <TableCell>{log.pagesRead} pages</TableCell>
                         <TableCell className="max-w-xs truncate">{log.notes || '-'}</TableCell>

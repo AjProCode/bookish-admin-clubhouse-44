@@ -124,18 +124,17 @@ const LoginPage: React.FC = () => {
       }
       
       if (data.user) {
-        // Create a profile record for the user
-        await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: registerEmail,
-            first_name: firstName,
-            last_name: lastName,
-            role: 'member',
-            status: 'active',
-            books_read: 0
-          });
+        // Create a profile record for the user using RPC to avoid type issues
+        const { error: insertError } = await supabase.rpc('create_profile', {
+          user_id: data.user.id,
+          user_email: registerEmail,
+          user_first_name: firstName,
+          user_last_name: lastName
+        });
+        
+        if (insertError) {
+          console.error("Error creating profile:", insertError);
+        }
         
         toast({
           title: "Registration successful",
