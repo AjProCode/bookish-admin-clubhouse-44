@@ -29,13 +29,13 @@ const Navbar: React.FC = () => {
         setUser(session.user);
         
         // Check if user has admin role
-        const { data: profileData } = await supabase
+        const { data: profileData, error } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .single();
         
-        if (profileData?.role === 'admin') {
+        if (!error && profileData?.role === 'admin') {
           setIsAdmin(true);
         }
       }
@@ -48,13 +48,13 @@ const Navbar: React.FC = () => {
       if (event === 'SIGNED_IN' && session) {
         setUser(session.user);
         // Check for admin role when signing in
-        const { data: profileData } = await supabase
+        const { data: profileData, error } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .single();
         
-        if (profileData?.role === 'admin') {
+        if (!error && profileData?.role === 'admin') {
           setIsAdmin(true);
         } else {
           setIsAdmin(false);

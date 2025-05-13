@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      books: {
+        Row: {
+          author: string
+          categories: string[] | null
+          coverimage: string | null
+          description: string | null
+          id: string
+          rating: number | null
+          title: string
+        }
+        Insert: {
+          author: string
+          categories?: string[] | null
+          coverimage?: string | null
+          description?: string | null
+          id?: string
+          rating?: number | null
+          title: string
+        }
+        Update: {
+          author?: string
+          categories?: string[] | null
+          coverimage?: string | null
+          description?: string | null
+          id?: string
+          rating?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           id: number
@@ -41,7 +71,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_profile: {
+        Args: {
+          user_id: string
+          user_email: string
+          user_first_name: string
+          user_last_name: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

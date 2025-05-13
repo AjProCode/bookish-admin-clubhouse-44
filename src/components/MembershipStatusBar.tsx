@@ -67,7 +67,7 @@ const MembershipStatusBar: React.FC = () => {
             email: data.email || user.email || "",
             first_name: data.first_name || "",
             last_name: data.last_name || "",
-            subscription: data.subscriptions && data.subscriptions.length > 0 ? {
+            subscription: data.subscriptions && Array.isArray(data.subscriptions) && data.subscriptions.length > 0 ? {
               status: data.subscriptions[0].status,
               plan: data.subscriptions[0].plan,
               end_date: data.subscriptions[0].end_date,

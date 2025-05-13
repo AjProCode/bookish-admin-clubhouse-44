@@ -63,13 +63,13 @@ const LoginPage: React.FC = () => {
         });
         
         // Check for admin role
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .single();
         
-        if (profileData?.role === 'admin') {
+        if (!profileError && profileData?.role === 'admin') {
           navigate('/admin');
         } else {
           navigate('/bookshelf');

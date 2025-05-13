@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,7 +8,6 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recha
 import { Calendar, Clock, BookOpen, BarChart2 } from 'lucide-react';
 import { UserReadingLog } from '@/models/UserBook';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Book {
@@ -69,7 +68,7 @@ const UserChildDetails: React.FC<ChildDetailsProps> = ({
         
         if (data) {
           const booksMap: Record<string, Book> = {};
-          data.forEach(book => {
+          data.forEach((book: any) => {
             booksMap[book.id] = book;
           });
           setBooks(booksMap);
