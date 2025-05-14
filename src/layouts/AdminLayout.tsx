@@ -34,6 +34,8 @@ const AdminLayout: React.FC = () => {
           .eq('id', session.user.id)
           .maybeSingle();
         
+        console.log("Admin check result:", { data, error });
+        
         if (error) {
           console.error("Error checking admin status:", error);
           toast({
@@ -56,6 +58,7 @@ const AdminLayout: React.FC = () => {
           return;
         }
         
+        console.log("Admin access granted to:", session.user.email);
         setLoading(false);
       } catch (error) {
         console.error("Error checking admin status:", error);

@@ -29,14 +29,15 @@ const Navbar: React.FC = () => {
         setUser(session.user);
         
         // Check if user has admin role
-        const { data: profileData, error } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
         
-        if (!error && profileData?.role === 'admin') {
+        if (!error && data?.role === 'admin') {
           setIsAdmin(true);
+          console.log("Admin role detected for user:", session.user.email);
         }
       }
     };
@@ -49,20 +50,22 @@ const Navbar: React.FC = () => {
       if (event === 'SIGNED_IN' && session) {
         setUser(session.user);
         // Check for admin role when signing in
-        const { data: profileData, error } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
         
-        if (!error && profileData?.role === 'admin') {
+        if (!error && data?.role === 'admin') {
           setIsAdmin(true);
+          console.log("Admin role detected for user:", session.user.email);
         } else {
           setIsAdmin(false);
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setIsAdmin(false);
+        console.log("User signed out");
       }
     });
     
@@ -73,6 +76,7 @@ const Navbar: React.FC = () => {
   
   const handleLogout = async () => {
     try {
+      console.log("Attempting to sign out...");
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error("Error during logout:", error);
@@ -91,6 +95,7 @@ const Navbar: React.FC = () => {
         description: "You have been logged out successfully."
       });
       navigate('/');
+      console.log("User successfully signed out");
     } catch (error) {
       console.error("Exception during logout:", error);
       toast({
@@ -144,8 +149,11 @@ const Navbar: React.FC = () => {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="w-full text-red-600 hover:text-red-700 hover:bg-red-50">
-                    Logout
+                  <DropdownMenuItem onClick={handleLogout} className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer">
+                    <span className="flex items-center gap-2">
+                      <LogOut className="h-4 w-4" />
+                      Logout
+                    </span>
                   </DropdownMenuItem>
                 </>
               ) : (
@@ -170,7 +178,7 @@ const Navbar: React.FC = () => {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="flex items-center gap-2 border-indigo-500 text-indigo-700 hover:bg-indigo-50" 
+                  className="flex items-center gap-2 border-indigo-500 text-indigo-700 hover:bg-indigo-50 cursor-pointer" 
                   onClick={handleLogout}
                 >
                   <LogOut className="h-4 w-4" />

@@ -72,13 +72,15 @@ const LoginPage: React.FC = () => {
           console.error("Error fetching profile:", profileError);
         }
         
+        console.log("Profile data:", profileData);
+        
         toast({
           title: "Login successful",
           description: `Welcome back, ${loginEmail}!`,
         });
         
         if (profileData?.role === 'admin') {
-          console.log("Admin user detected");
+          console.log("Admin user detected, redirecting to admin");
           navigate('/admin');
         } else {
           navigate('/bookshelf');

@@ -42,12 +42,15 @@ export type Database = {
       profiles: {
         Row: {
           id: number
+          role: string | null
         }
         Insert: {
           id?: number
+          role?: string | null
         }
         Update: {
           id?: number
+          role?: string | null
         }
         Relationships: []
       }

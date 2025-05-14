@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { planId } = await req.json();
+    const { planId, paymentMethod = 'stripe' } = await req.json();
     
     if (!planId) {
       throw new Error("Missing plan ID");
@@ -47,139 +47,114 @@ serve(async (req) => {
     
     const user = userData.user;
     
-    // Initialize Stripe
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeSecretKey) {
-      throw new Error("Missing Stripe secret key");
-    }
-    
-    const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
-    
-    // Check if user already has a Stripe customer ID
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("stripe_customer_id")
-      .eq("id", user.id)
-      .single();
-    
-    let customerId = profile?.stripe_customer_id;
-    
-    // If no customer ID found, create a new customer
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          supabase_user_id: user.id
-        }
-      });
+    // Process based on payment method
+    if (paymentMethod === 'paypal') {
+      // For demo purposes, we'll just redirect to PayPal checkout
+      // In a real implementation, you would use the PayPal SDK
+      const origin = req.headers.get("origin") || "https://your-app-url.com";
+      const successUrl = `${origin}/membership?success=true&provider=paypal`;
+      const cancelUrl = `${origin}/membership?canceled=true&provider=paypal`;
       
-      customerId = customer.id;
+      // Here you would integrate with the PayPal API to create an order
+      // For this demo, we'll just return URLs to simulate the process
       
-      // Update the profile with the new customer ID
+      // Create a subscription record in the database
       const supabaseAdmin = createClient(supabaseUrl, supabaseAdminKey, {
         auth: { persistSession: false }
       });
       
+      // Record the pending PayPal subscription
       await supabaseAdmin
-        .from("profiles")
-        .update({ stripe_customer_id: customerId })
-        .eq("id", user.id);
-    }
-    
-    // Map plan IDs to products and prices
-    let productName = "Monthly Book Subscription";
-    let amount = 1199;
-    let interval = "month";
-    let intervalCount = 1;
-    
-    switch(planId) {
-      case 'monthly':
-        amount = 1199;
-        productName = "Monthly Book Club";
-        intervalCount = 1;
-        break;
-      case 'quarterly':
-        amount = 3000;
-        productName = "Quarterly Book Club";
-        intervalCount = 3;
-        break;
-      case 'biannual':
-        amount = 5500;
-        productName = "Biannual Book Club";
-        intervalCount = 6;
-        break;
-      case 'annual':
-        amount = 10000;
-        productName = "Annual Book Club";
-        intervalCount = 12;
-        break;
-    }
-    
-    // Create a product for this subscription if it doesn't exist
-    const products = await stripe.products.list({
-      lookup_keys: [planId],
-      active: true
-    });
-    
-    let product;
-    if (products.data.length > 0) {
-      product = products.data[0];
-    } else {
-      product = await stripe.products.create({
-        name: productName,
-        active: true,
-        lookup_key: planId,
-        metadata: {
-          plan: planId
-        }
-      });
-    }
-    
-    // Check for existing price or create one
-    const prices = await stripe.prices.list({
-      product: product.id,
-      active: true,
-      type: 'recurring',
-      currency: 'inr'
-    });
-    
-    let price;
-    if (prices.data.length > 0) {
-      price = prices.data[0];
-    } else {
-      price = await stripe.prices.create({
-        product: product.id,
-        currency: 'inr',
-        unit_amount: amount,
-        recurring: {
-          interval,
-          interval_count: intervalCount
-        },
-        metadata: {
-          plan: planId
-        }
-      });
-    }
-    
-    // Create a new checkout session
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ["card"],
-      line_items: [
+        .from("subscriptions")
+        .insert({
+          user_id: user.id,
+          plan: planId,
+          status: 'pending',
+          payment_provider: 'paypal'
+        });
+      
+      return new Response(
+        JSON.stringify({ 
+          url: `https://www.sandbox.paypal.com/checkoutnow?token=demo-paypal-${planId}`,
+          provider: 'paypal' 
+        }),
         {
-          price: price.id,
-          quantity: 1,
-        },
-      ],
-      mode: "subscription",
-      success_url: `${req.headers.get("origin") || "https://your-app-url.com"}/membership?success=true`,
-      cancel_url: `${req.headers.get("origin") || "https://your-app-url.com"}/membership?canceled=true`,
-    });
-
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    } else {
+      // Initialize Stripe
+      const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!stripeSecretKey) {
+        throw new Error("Missing Stripe secret key");
+      }
+      
+      const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
+      
+      // Check if user already has a Stripe customer ID
+      const { data: profile, error: profileError } = await supabaseClient
+        .from("profiles")
+        .select("stripe_customer_id")
+        .eq("id", user.id)
+        .single();
+      
+      let customerId = profile?.stripe_customer_id;
+      
+      // If no customer ID found, create a new customer
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: {
+            supabase_user_id: user.id
+          }
+        });
+        
+        customerId = customer.id;
+        
+        // Update the profile with the new customer ID
+        const supabaseAdmin = createClient(supabaseUrl, supabaseAdminKey, {
+          auth: { persistSession: false }
+        });
+        
+        await supabaseAdmin
+          .from("profiles")
+          .update({ stripe_customer_id: customerId })
+          .eq("id", user.id);
+      }
+      
+      // Map plan IDs to prices
+      const planPriceMap: Record<string, string> = {
+        monthly: "price_monthly",
+        quarterly: "price_quarterly",
+        biannual: "price_biannual",
+        annual: "price_annual"
+      };
+      
+      // For demo purposes, we're using a test price
+      // In a real implementation, you would fetch actual price IDs from your Stripe account
+      const priceId = planPriceMap[planId] || "price_monthly";
+      
+      // Create a new checkout session
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        mode: "subscription",
+        success_url: `${req.headers.get("origin") || "https://your-app-url.com"}/membership?success=true&provider=stripe`,
+        cancel_url: `${req.headers.get("origin") || "https://your-app-url.com"}/membership?canceled=true&provider=stripe`,
+      });
+      
+      return new Response(JSON.stringify({ url: session.url, provider: 'stripe' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
   } catch (error) {
     console.error("Checkout error:", error);
     return new Response(JSON.stringify({ error: error.message }), {

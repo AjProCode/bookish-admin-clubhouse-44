@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -14,9 +15,15 @@ import { Badge } from '@/components/ui/badge';
 import { Check, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MembershipStatusBar from '@/components/MembershipStatusBar';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 
 // Sample membership plans data
 const membershipPlans = [
@@ -114,12 +121,14 @@ interface PlanProps {
     features: string[];
     isPopular?: boolean;
   };
-  onSubscribe: (planId: string) => void;
+  onSubscribe: (planId: string, paymentMethod: string) => void;
   isCurrentPlan?: boolean;
   loading?: boolean;
 }
 
 const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan, loading }) => {
+  const [selectedPayment, setSelectedPayment] = useState('stripe');
+  
   return (
     <Card className={cn(
       "flex flex-col h-full transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1",
@@ -163,241 +172,92 @@ const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan, loadi
           ))}
         </ul>
       </CardContent>
-      <CardFooter className="pt-4">
-        <Button 
-          className={cn(
-            "w-full",
-            plan.isPopular && !isCurrentPlan && "bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white",
-            isCurrentPlan && "border-emerald-500 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
-          )}
-          variant={isCurrentPlan ? "outline" : (plan.isPopular ? "default" : "outline")}
-          onClick={() => onSubscribe(plan.id)}
-          disabled={isCurrentPlan || loading}
-        >
-          {loading ? 'Processing...' : (isCurrentPlan ? 'Current Plan' : 'Subscribe Now')}
-        </Button>
+      <CardFooter className="pt-4 flex flex-col gap-2">
+        {isCurrentPlan ? (
+          <Button 
+            className="w-full border-emerald-500 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+            variant="outline"
+            disabled
+          >
+            Current Plan
+          </Button>
+        ) : loading ? (
+          <Button 
+            className="w-full"
+            disabled
+          >
+            Processing...
+          </Button>
+        ) : (
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  className={cn(
+                    "w-full",
+                    plan.isPopular && "bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white",
+                    !plan.isPopular && "border-purple-500 text-purple-700 bg-white hover:bg-purple-50"
+                  )}
+                  variant={plan.isPopular ? "default" : "outline"}
+                >
+                  Subscribe Now
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-48">
+                <DropdownMenuItem 
+                  onClick={() => onSubscribe(plan.id, 'stripe')}
+                  className="cursor-pointer"
+                >
+                  <CreditCard className="mr-2 h-4 w-4" /> Pay with Card
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => onSubscribe(plan.id, 'paypal')} 
+                  className="cursor-pointer"
+                >
+                  <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19.5 9.5H18C16.3431 9.5 15 10.8431 15 12.5V15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M4 10.5H7.5C8.32843 10.5 9 9.82843 9 9V7.5C9 6.67157 8.32843 6 7.5 6H5.5C4.67157 6 4 6.67157 4 7.5V18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M13 7.5V18M13 7.5C13 6.67157 12.3284 6 11.5 6H9.5C8.67157 6 8 6.67157 8 7.5V9C8 9.82843 8.67157 10.5 9.5 10.5H11.5C12.3284 10.5 13 9.82843 13 9V7.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M20 13.5V15C20 15.8284 19.3284 16.5 18.5 16.5H16.5C15.6716 16.5 15 15.8284 15 15V13.5C15 12.6716 15.6716 12 16.5 12H18.5C19.3284 12 20 12.6716 20 13.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Pay with PayPal
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <p className="text-center text-xs text-gray-500">Secure payment processing</p>
+          </>
+        )}
       </CardFooter>
     </Card>
   );
 };
 
-// Create our Edge Function for Stripe integration
-const createCheckoutEdgeFunction = `
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const { planId } = await req.json();
-    
-    if (!planId) {
-      throw new Error("Missing plan ID");
-    }
-
-    // Create Supabase client for auth
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const supabaseAdminKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error("Missing Supabase environment variables");
-    }
-    
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-
-    // Get user from auth header
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
-    }
-    
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    
-    if (userError || !userData.user) {
-      throw new Error("Invalid user token");
-    }
-    
-    const user = userData.user;
-    
-    // Initialize Stripe
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeSecretKey) {
-      throw new Error("Missing Stripe secret key");
-    }
-    
-    const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
-    
-    // Check if user already has a Stripe customer ID
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("stripe_customer_id")
-      .eq("id", user.id)
-      .single();
-    
-    let customerId = profile?.stripe_customer_id;
-    
-    // If no customer ID found, create a new customer
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          supabase_user_id: user.id
-        }
-      });
-      
-      customerId = customer.id;
-      
-      // Update the profile with the new customer ID
-      const supabaseAdmin = createClient(supabaseUrl, supabaseAdminKey, {
-        auth: { persistSession: false }
-      });
-      
-      await supabaseAdmin
-        .from("profiles")
-        .update({ stripe_customer_id: customerId })
-        .eq("id", user.id);
-    }
-    
-    // Map plan IDs to prices
-    const planPriceMap = {
-      monthly: "price_monthly",
-      quarterly: "price_quarterly",
-      biannual: "price_biannual",
-      annual: "price_annual"
-    };
-    
-    // For demo purposes, we're using a test price
-    // In a real implementation, you would fetch actual price IDs from your Stripe account
-    const priceId = planPriceMap[planId] || "price_monthly";
-    
-    // Create a new checkout session
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: "subscription",
-      success_url: \`\${req.headers.get("origin") || "https://your-app-url.com"}/membership?success=true\`,
-      cancel_url: \`\${req.headers.get("origin") || "https://your-app-url.com"}/membership?canceled=true\`,
-    });
-
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-  } catch (error) {
-    console.error("Checkout error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
-  }
-});
-`;
-
-// Create our customer portal Edge Function
-const customerPortalEdgeFunction = `
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    // Create Supabase client for auth
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error("Missing Supabase environment variables");
-    }
-    
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-
-    // Get user from auth header
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
-    }
-    
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    
-    if (userError || !userData.user) {
-      throw new Error("Invalid user token");
-    }
-    
-    const user = userData.user;
-    
-    // Initialize Stripe
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeSecretKey) {
-      throw new Error("Missing Stripe secret key");
-    }
-    
-    const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
-    
-    // Get customer ID
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("stripe_customer_id")
-      .eq("id", user.id)
-      .single();
-    
-    if (profileError || !profile?.stripe_customer_id) {
-      throw new Error("No Stripe customer found");
-    }
-    
-    // Create customer portal session
-    const session = await stripe.billingPortal.sessions.create({
-      customer: profile.stripe_customer_id,
-      return_url: \`\${req.headers.get("origin") || "https://your-app-url.com"}/membership\`,
-    });
-
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-  } catch (error) {
-    console.error("Customer portal error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
-  }
-});
-`;
-
 const MembershipPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [planIdLoading, setPlanIdLoading] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const canceled = searchParams.get('canceled');
+    const provider = searchParams.get('provider') || 'payment service';
+    
+    if (success === 'true') {
+      toast({
+        title: "Subscription Successful",
+        description: `Your subscription with ${provider} has been processed successfully.`,
+        variant: "default"
+      });
+    } else if (canceled === 'true') {
+      toast({
+        title: "Subscription Canceled",
+        description: `Your ${provider} subscription process was canceled.`,
+        variant: "destructive"
+      });
+    }
+  }, [searchParams]);
   
   useEffect(() => {
     const fetchProfile = async () => {
@@ -451,7 +311,7 @@ const MembershipPage: React.FC = () => {
     };
   }, []);
   
-  const handleSubscribe = async (planId: string) => {
+  const handleSubscribe = async (planId: string, paymentMethod: string = 'stripe') => {
     try {
       // Check if user is authenticated
       const { data: sessionData } = await supabase.auth.getSession();
@@ -469,9 +329,9 @@ const MembershipPage: React.FC = () => {
       setPlanIdLoading(planId);
       setLoading(true);
       
-      // Call Supabase Edge Function to create a Stripe checkout session
+      // Call Supabase Edge Function to create a checkout session
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { planId }
+        body: { planId, paymentMethod }
       });
       
       if (error) {
@@ -621,6 +481,19 @@ const MembershipPage: React.FC = () => {
               </Button>
             </div>
           )}
+          
+          <div className="mt-6 mb-4 flex items-center justify-center gap-4">
+            <img src="https://www.paypalobjects.com/webstatic/mktg/Logo/pp-logo-100px.png" alt="PayPal" className="h-8" />
+            <img src="https://www.mastercard.co.in/content/dam/public/mastercardcom/in/en/consumers/cards-benefits/images/mc-logo-52.svg" alt="Mastercard" className="h-8" />
+            <img src="https://www.visa.co.in/dam/VCOM/regional/ap/india/global-elements/images/in-visa-gold-card-498x280.png" alt="Visa" className="h-8" />
+          </div>
+          
+          <div className="flex justify-center">
+            <p className="text-xs text-gray-500 text-center max-w-lg">
+              Payments are securely processed. We accept major credit/debit cards and PayPal. 
+              All transactions are encrypted and your payment information is never stored on our servers.
+            </p>
+          </div>
           
           <div className="mt-12 bg-gradient-to-br from-purple-50 to-indigo-50 p-8 rounded-lg max-w-3xl mx-auto transform transition-transform hover:scale-105">
             <h3 className="text-xl font-semibold mb-4 text-center text-purple-800">Did You Know?</h3>
