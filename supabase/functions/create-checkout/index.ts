@@ -49,23 +49,79 @@ serve(async (req) => {
     
     // Process based on payment method
     if (paymentMethod === 'paypal') {
-      // For demo purposes, we'll just redirect to PayPal checkout
-      // In a real implementation, you would use the PayPal SDK
-      const origin = req.headers.get("origin") || "https://your-app-url.com";
-      const successUrl = `${origin}/membership?success=true&provider=paypal`;
-      const cancelUrl = `${origin}/membership?canceled=true&provider=paypal`;
-      
-      // Here you would integrate with the PayPal API to create an order
-      // For this demo, we'll just return URLs to simulate the process
-      
-      // Create a subscription record in the database
       const supabaseAdmin = createClient(supabaseUrl, supabaseAdminKey, {
         auth: { persistSession: false }
       });
       
+      // Get PayPal related env variables
+      const paypalClientId = Deno.env.get("PAYPAL_CLIENT_ID");
+      const paypalClientSecret = Deno.env.get("PAYPAL_CLIENT_SECRET");
+      
+      if (!paypalClientId || !paypalClientSecret) {
+        throw new Error("Missing PayPal credentials");
+      }
+      
+      // Get access token from PayPal
+      const tokenResponse = await fetch('https://api-m.sandbox.paypal.com/v1/oauth2/token', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${btoa(`${paypalClientId}:${paypalClientSecret}`)}`
+        },
+        body: 'grant_type=client_credentials'
+      });
+      
+      const tokenData = await tokenResponse.json();
+      
+      if (!tokenData.access_token) {
+        throw new Error("Failed to obtain PayPal access token");
+      }
+      
+      // Map plan IDs to PayPal price values
+      const planPriceMap: Record<string, { value: string, currency: string, description: string }> = {
+        monthly: { value: '11.99', currency: 'USD', description: 'Monthly Book Subscription' },
+        quarterly: { value: '30.00', currency: 'USD', description: '3 Months Book Subscription' },
+        biannual: { value: '55.00', currency: 'USD', description: '6 Months Book Subscription' },
+        annual: { value: '100.00', currency: 'USD', description: 'Annual Book Subscription' }
+      };
+      
+      const planDetails = planPriceMap[planId] || planPriceMap.monthly;
+      
+      // Create PayPal order
+      const orderResponse = await fetch('https://api-m.sandbox.paypal.com/v2/checkout/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokenData.access_token}`
+        },
+        body: JSON.stringify({
+          intent: 'CAPTURE',
+          purchase_units: [{
+            amount: {
+              currency_code: planDetails.currency,
+              value: planDetails.value
+            },
+            description: planDetails.description
+          }],
+          application_context: {
+            return_url: `${req.headers.get("origin") || "https://your-app-url.com"}/membership?success=true&provider=paypal`,
+            cancel_url: `${req.headers.get("origin") || "https://your-app-url.com"}/membership?canceled=true&provider=paypal`,
+            brand_name: "Skillbag",
+            user_action: "PAY_NOW"
+          }
+        })
+      });
+      
+      const orderData = await orderResponse.json();
+      
+      if (!orderData.id) {
+        throw new Error("Failed to create PayPal order");
+      }
+      
       // Record the pending PayPal subscription
       await supabaseAdmin
-        .from("subscriptions")
+        .from("user_subscriptions")
         .insert({
           user_id: user.id,
           plan: planId,
@@ -73,10 +129,18 @@ serve(async (req) => {
           payment_provider: 'paypal'
         });
       
+      // Find the approval URL
+      const approvalUrl = orderData.links.find((link: any) => link.rel === 'approve')?.href;
+      
+      if (!approvalUrl) {
+        throw new Error("No approval URL found in PayPal response");
+      }
+      
       return new Response(
         JSON.stringify({ 
-          url: `https://www.sandbox.paypal.com/checkoutnow?token=demo-paypal-${planId}`,
-          provider: 'paypal' 
+          url: approvalUrl,
+          provider: 'paypal',
+          orderId: orderData.id
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -37,41 +37,42 @@ const MembershipStatusBar: React.FC = () => {
           return;
         }
         
-        // Get user profile with subscription info
-        const { data, error } = await supabase
+        // Get user profile
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select(`
-            id,
-            email,
-            first_name,
-            last_name,
-            subscriptions (
-              status,
-              plan,
-              end_date,
-              next_delivery_date
-            )
-          `)
+          .select('id, email, first_name, last_name')
           .eq('id', user.id)
           .maybeSingle();
         
-        if (error) {
-          console.error("Error fetching profile", error);
+        if (profileError) {
+          console.error("Error fetching profile", profileError);
           setLoading(false);
           return;
         }
+
+        // Get subscription info
+        const { data: subscriptionData, error: subscriptionError } = await supabase
+          .from('user_subscriptions')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .maybeSingle();
         
-        if (data) {
+        if (subscriptionError) {
+          console.error("Error fetching subscription", subscriptionError);
+        }
+        
+        if (profileData) {
           setProfile({
-            id: data.id || "",
-            email: data.email || user.email,
-            first_name: data.first_name || "",
-            last_name: data.last_name || "",
-            subscription: data.subscriptions && Array.isArray(data.subscriptions) && data.subscriptions.length > 0 ? {
-              status: data.subscriptions[0].status || "",
-              plan: data.subscriptions[0].plan || "",
-              end_date: data.subscriptions[0].end_date || "",
-              next_delivery_date: data.subscriptions[0].next_delivery_date
+            id: profileData.id?.toString() || "",
+            email: profileData.email || user.email,
+            first_name: profileData.first_name || "",
+            last_name: profileData.last_name || "",
+            subscription: subscriptionData ? {
+              status: subscriptionData.status || "",
+              plan: subscriptionData.plan || "",
+              end_date: subscriptionData.end_date || "",
+              next_delivery_date: subscriptionData.next_delivery_date
             } : undefined
           });
         }

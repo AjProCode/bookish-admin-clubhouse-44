@@ -48,7 +48,7 @@ serve(async (req) => {
     
     const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
     
-    // Get customer ID
+    // Get user's Stripe customer ID
     const { data: profile, error: profileError } = await supabaseClient
       .from("profiles")
       .select("stripe_customer_id")
@@ -56,15 +56,15 @@ serve(async (req) => {
       .single();
     
     if (profileError || !profile?.stripe_customer_id) {
-      throw new Error("No Stripe customer found");
+      throw new Error("No Stripe customer ID found for this user");
     }
     
-    // Create customer portal session
+    // Create a Stripe Customer Portal session
     const session = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
       return_url: `${req.headers.get("origin") || "https://your-app-url.com"}/membership`,
     });
-
+    
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

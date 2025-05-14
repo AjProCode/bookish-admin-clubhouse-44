@@ -41,15 +41,24 @@ export type Database = {
       }
       profiles: {
         Row: {
+          email: string | null
+          first_name: string | null
           id: number
+          last_name: string | null
           role: string | null
         }
         Insert: {
+          email?: string | null
+          first_name?: string | null
           id?: number
+          last_name?: string | null
           role?: string | null
         }
         Update: {
+          email?: string | null
+          first_name?: string | null
           id?: number
+          last_name?: string | null
           role?: string | null
         }
         Relationships: []
@@ -69,6 +78,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          created_at: string | null
+          end_date: string | null
+          id: string
+          next_delivery_date: string | null
+          payment_provider: string
+          plan: string
+          start_date: string | null
+          status: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          next_delivery_date?: string | null
+          payment_provider: string
+          plan: string
+          start_date?: string | null
+          status: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          next_delivery_date?: string | null
+          payment_provider?: string
+          plan?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -82,6 +130,10 @@ export type Database = {
           user_last_name: string
         }
         Returns: undefined
+      }
+      is_admin: {
+        Args: { user_id: string }
+        Returns: boolean
       }
     }
     Enums: {

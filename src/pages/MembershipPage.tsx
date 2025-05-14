@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -25,13 +24,13 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 
-// Sample membership plans data
+// Update membership plans data with string IDs
 const membershipPlans = [
   {
     id: 'monthly',
     name: 'Monthly Plan',
     description: 'Perfect for those who want to try out our service',
-    price: 1199,
+    price: "1199",
     duration: 1,
     deliveryFrequency: 'monthly',
     booksPerDelivery: 3,
@@ -48,7 +47,7 @@ const membershipPlans = [
     id: 'quarterly',
     name: '3 Months',
     description: 'Our recommended plan for developing reading habits',
-    price: 3000,
+    price: "3000",
     duration: 3,
     deliveryFrequency: 'monthly',
     booksPerDelivery: 3,
@@ -67,7 +66,7 @@ const membershipPlans = [
     id: 'biannual',
     name: '6 Months',
     description: 'Great value for building a solid reading foundation',
-    price: 5500,
+    price: "5500",
     duration: 6,
     deliveryFrequency: 'monthly',
     booksPerDelivery: 3,
@@ -86,7 +85,7 @@ const membershipPlans = [
     id: 'annual',
     name: 'Annual',
     description: 'Best value for committed readers',
-    price: 10000,
+    price: "10000",
     duration: 12,
     deliveryFrequency: 'monthly',
     booksPerDelivery: 3,
@@ -116,7 +115,7 @@ interface PlanProps {
     id: string;
     name: string;
     description: string;
-    price: number;
+    price: string;
     duration: number;
     features: string[];
     isPopular?: boolean;

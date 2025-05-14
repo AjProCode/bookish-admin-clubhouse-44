@@ -32,15 +32,10 @@ const MembershipRequired: React.FC<MembershipRequiredProps> = ({ children }) => 
         
         // Check if user has active subscription
         const { data, error } = await supabase
-          .from('profiles')
-          .select(`
-            id,
-            subscriptions (
-              status,
-              plan
-            )
-          `)
-          .eq('id', session.user.id)
+          .from('user_subscriptions')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .eq('status', 'active')
           .maybeSingle();
         
         if (error) {
@@ -50,13 +45,7 @@ const MembershipRequired: React.FC<MembershipRequiredProps> = ({ children }) => 
         }
         
         // Check if user has an active subscription
-        const hasActiveSub = data?.subscriptions &&
-                          Array.isArray(data.subscriptions) &&
-                          data.subscriptions.length > 0 &&
-                          typeof data.subscriptions[0] === 'object' &&
-                          data.subscriptions[0]?.status === 'active';
-        
-        setHasSubscription(hasActiveSub);
+        setHasSubscription(!!data);
       } catch (error) {
         console.error("Error checking subscription status:", error);
       } finally {
