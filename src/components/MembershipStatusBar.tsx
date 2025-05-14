@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 interface UserProfile {
-  id: string;
+  id: number;
   email: string | null;
   first_name: string | null;
   last_name: string | null;
@@ -41,7 +40,7 @@ const MembershipStatusBar: React.FC = () => {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('id, email, first_name, last_name')
-          .eq('id', user.id)
+          .eq('id', Number(user.id))
           .maybeSingle();
         
         if (profileError) {
@@ -64,7 +63,7 @@ const MembershipStatusBar: React.FC = () => {
         
         if (profileData) {
           setProfile({
-            id: profileData.id?.toString() || "",
+            id: profileData.id || 0,
             email: profileData.email || user.email,
             first_name: profileData.first_name || "",
             last_name: profileData.last_name || "",

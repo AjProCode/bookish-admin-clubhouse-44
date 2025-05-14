@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 
-// Update membership plans data with string IDs
+// Update membership plans data with fixed types
 const membershipPlans = [
   {
     id: 'monthly',
@@ -104,7 +104,7 @@ const membershipPlans = [
 ];
 
 interface UserProfile {
-  id: string;
+  id: number;
   subscription?: {
     plan: string;
   };
@@ -126,8 +126,6 @@ interface PlanProps {
 }
 
 const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan, loading }) => {
-  const [selectedPayment, setSelectedPayment] = useState('stripe');
-  
   return (
     <Card className={cn(
       "flex flex-col h-full transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1",
@@ -157,7 +155,7 @@ const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan, loadi
       </CardHeader>
       <CardContent className="flex-1">
         <div className="mb-4">
-          <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">₹{plan.price}</span>
+          <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">₹{parseInt(plan.price, 10)}</span>
           <span className="text-gray-500 ml-2">
             for {plan.duration} {plan.duration === 1 ? 'month' : 'months'}
           </span>
@@ -272,12 +270,9 @@ const MembershipPage: React.FC = () => {
         const { data, error } = await supabase
           .from('profiles')
           .select(`
-            id,
-            subscriptions (
-              plan
-            )
+            id
           `)
-          .eq('id', user.id)
+          .eq('id', Number(user.id))
           .maybeSingle();
         
         if (error) {
@@ -285,11 +280,23 @@ const MembershipPage: React.FC = () => {
           return;
         }
         
+        // Get subscription info
+        const { data: subData, error: subError } = await supabase
+          .from('user_subscriptions')
+          .select('plan')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .maybeSingle();
+          
+        if (subError) {
+          console.error("Error fetching subscription", subError);
+        }
+        
         if (data) {
           setProfile({
             id: data.id,
-            subscription: data.subscriptions && Array.isArray(data.subscriptions) && data.subscriptions.length > 0 ? {
-              plan: data.subscriptions[0].plan
+            subscription: subData ? {
+              plan: subData.plan
             } : undefined
           });
         }

@@ -31,7 +31,7 @@ const AdminLayout: React.FC = () => {
         const { data, error } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', session.user.id)
+          .eq('id', Number(session.user.id))
           .maybeSingle();
         
         console.log("Admin check result:", { data, error });

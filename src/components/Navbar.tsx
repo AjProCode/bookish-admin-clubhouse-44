@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -32,7 +31,7 @@ const Navbar: React.FC = () => {
         const { data, error } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', session.user.id)
+          .eq('id', Number(session.user.id))
           .maybeSingle();
         
         if (!error && data?.role === 'admin') {
@@ -53,7 +52,7 @@ const Navbar: React.FC = () => {
         const { data, error } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', session.user.id)
+          .eq('id', Number(session.user.id))
           .maybeSingle();
         
         if (!error && data?.role === 'admin') {
