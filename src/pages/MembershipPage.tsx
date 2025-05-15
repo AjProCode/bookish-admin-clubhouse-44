@@ -111,7 +111,7 @@ const membershipPlans = [
 ];
 
 interface UserProfile {
-  id: number;
+  id: string;
   subscription?: {
     plan: string;
   };
@@ -220,7 +220,7 @@ const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan, loadi
                 >
                   <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M19.5 9.5H18C16.3431 9.5 15 10.8431 15 12.5V15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M4 10.5H7.5C8.32843 10.5 9 9.82843 9 9V7.5C9 6.67157 8.32843 6 7.5 6H5.5C4.67157 6 4 6.67157 4 7.5V18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M4 10.5H7.5C8.32843 10.5 9 9.82843 9 9V7.5C9 6.67157 8.32843 6 8 6.67157 8 7.5V18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M13 7.5V18M13 7.5C13 6.67157 12.3284 6 11.5 6H9.5C8.67157 6 8 6.67157 8 7.5V9C8 9.82843 8.67157 10.5 9.5 10.5H11.5C12.3284 10.5 13 9.82843 13 9V7.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M20 13.5V15C20 15.8284 19.3284 16.5 18.5 16.5H16.5C15.6716 16.5 15 15.8284 15 15V13.5C15 12.6716 15.6716 12 16.5 12H18.5C19.3284 12 20 12.6716 20 13.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -241,6 +241,26 @@ const MembershipPage: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [planIdLoading, setPlanIdLoading] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const [paypalScriptLoaded, setPaypalScriptLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState({
+    id: 'monthly',
+    name: 'Monthly Plan',
+    description: 'Perfect for those who want to try out our service',
+    price: '11.99',
+    duration: 1,
+    deliveryFrequency: 'monthly',
+    booksPerDelivery: 3,
+    features: [
+      'Personalized book selection',
+      'Convenient delivery',
+      'Interactive book buddy',
+      'Goal setting',
+      'Book discussions'
+    ],
+    isActive: true
+  });
   
   useEffect(() => {
     const success = searchParams.get('success');
@@ -278,7 +298,7 @@ const MembershipPage: React.FC = () => {
           .select(`
             id
           `)
-          .eq('id', Number(user.id))
+          .eq('id', user.id)
           .maybeSingle();
         
         if (error) {
@@ -300,7 +320,7 @@ const MembershipPage: React.FC = () => {
         
         if (data) {
           setProfile({
-            id: data.id,
+            id: data.id.toString(),
             subscription: subData ? {
               plan: subData.plan
             } : undefined
@@ -310,6 +330,10 @@ const MembershipPage: React.FC = () => {
         console.error("Error in useEffect:", error);
       }
     };
+
+    fetchProfile();
+    
+  }, [searchParams]);
 
   const paypalClientId = process.env.PAYPAL_CLIENT_ID;
 

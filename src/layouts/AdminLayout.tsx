@@ -31,13 +31,13 @@ const AdminLayout: React.FC = () => {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', Number(session.user.id))
+          .eq('id', session.user.id)
           .maybeSingle();
         
-        console.log("Admin check result:", { data, error });
+        console.log("Admin check result:", { profileData, profileError });
         
-        if (error) {
-          console.error("Error checking admin status:", error);
+        if (profileError) {
+          console.error("Error checking admin status:", profileError);
           toast({
             title: "Error",
             description: "Failed to fetch user profile",
@@ -70,7 +70,7 @@ const AdminLayout: React.FC = () => {
     };
 
     checkAdmin();
-  }, [navigate, toast]);
+  }, [navigate]);
 
   if (loading) {
     return <div>Loading...</div>;
