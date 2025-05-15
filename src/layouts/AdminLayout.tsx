@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/admin/AdminSidebar';
@@ -10,13 +9,14 @@ import { supabase } from '@/integrations/supabase/client';
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     const checkAdmin = async () => {
       try {
         // Check if user is authenticated
         const { data: sessionData } = await supabase.auth.getSession();
         const session = sessionData.session;
+
         if (!session) {
           toast({
             title: "Authentication Required",
@@ -26,9 +26,9 @@ const AdminLayout: React.FC = () => {
           navigate('/login');
           return;
         }
-        
+
         // Check if user has admin role
-        const { data, error } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', Number(session.user.id))
@@ -39,56 +39,53 @@ const AdminLayout: React.FC = () => {
         if (error) {
           console.error("Error checking admin status:", error);
           toast({
-            title: "Access Denied",
-            description: "Could not verify admin permissions",
+            title: "Error",
+            description: "Failed to fetch user profile",
             variant: "destructive"
           });
-          navigate('/');
+          navigate('/login');
           return;
         }
-        
-        if (!data || data.role !== 'admin') {
-          console.log("Admin check failed:", data);
+
+        if (profileData?.role !== 'admin') {
           toast({
-            title: "Access Denied",
-            description: "You do not have permission to access the admin panel",
+            title: "Unauthorized",
+            description: "You do not have permission to access this page",
             variant: "destructive"
           });
-          navigate('/');
+          navigate('/login');
           return;
         }
-        
-        console.log("Admin access granted to:", session.user.email);
-        setLoading(false);
       } catch (error) {
         console.error("Error checking admin status:", error);
         toast({
-          title: "An error occurred",
-          description: "Could not verify admin permissions",
+          title: "Error",
+          description: "An unexpected error occurred",
           variant: "destructive"
         });
-        navigate('/');
+        navigate('/login');
+      } finally {
+        setLoading(false);
       }
     };
-    
+
     checkAdmin();
-  }, [navigate]);
-  
+  }, [navigate, toast]);
+
   if (loading) {
-    return <div className="h-screen flex items-center justify-center">Verifying admin access...</div>;
+    return <div>Loading...</div>;
   }
-  
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="flex h-screen bg-gray-100">
       <AdminSidebar />
-      <div className={cn("flex-1 flex flex-col")}>
-        <AdminHeader title="Admin Dashboard" />
-        <div className="flex-1 p-6 overflow-auto">
-          <Outlet />
-        </div>
-        <div className="bg-white border-t p-4 text-center text-xs text-gray-500">
-          Skillbag Admin Panel - For authorized personnel only
-        </div>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <AdminHeader title="Admin Panel" />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+          <div className="container mx-auto px-6 py-8">
+            <Outlet />
+          </div>
+        </main>
       </div>
     </div>
   );

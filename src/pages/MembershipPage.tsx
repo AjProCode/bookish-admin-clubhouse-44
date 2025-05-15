@@ -12,6 +12,13 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Check, CreditCard } from 'lucide-react';
+
+// Extend the Window interface to include the PayPal property
+declare global {
+  interface Window {
+    paypal: any;
+  }
+}
 import { cn } from '@/lib/utils';
 import MembershipStatusBar from '@/components/MembershipStatusBar';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -230,7 +237,6 @@ const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan, loadi
 };
 
 const MembershipPage: React.FC = () => {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
@@ -305,213 +311,239 @@ const MembershipPage: React.FC = () => {
       }
     };
 
-    fetchProfile();
-    
-    // Subscribe to auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
-      fetchProfile();
-    });
-    
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-  
-  const handleSubscribe = async (planId: string, paymentMethod: string = 'stripe') => {
-    try {
-      // Check if user is authenticated
+  const paypalClientId = process.env.PAYPAL_CLIENT_ID;
+
+  useEffect(() => {
+    const checkSession = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData.session;
-      
-      if (!session) {
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in or create an account to subscribe.",
-        });
+      if (!sessionData?.session) {
         navigate('/login');
-        return;
       }
-      
-      setPlanIdLoading(planId);
-      setLoading(true);
-      
-      // Call Supabase Edge Function to create a checkout session
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { planId, paymentMethod }
-      });
-      
-      if (error) {
-        throw error;
+    };
+    checkSession();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (paypalClientId) {
+      const addPaypalScript = async () => {
+        const script = document.createElement('script');
+        script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD`;
+        script.type = 'text/javascript';
+        script.async = true;
+        script.onload = () => setPaypalScriptLoaded(true);
+        script.onerror = () => {
+          console.error('Failed to load PayPal SDK script.');
+          toast({
+            title: 'Error',
+            description: 'Failed to load PayPal, please try again later.',
+            variant: 'destructive',
+          });
+        };
+        document.body.appendChild(script);
+      };
+
+      if (!paypalScriptLoaded) {
+        addPaypalScript();
       }
-      
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error("No checkout URL returned");
-      }
-    } catch (error) {
-      console.error("Error creating checkout session:", error);
+    } else {
+      console.error('PayPal Client ID is not set in environment variables.');
       toast({
-        title: "Subscription Error",
-        description: "There was a problem setting up your subscription. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'PayPal Client ID is not set. Please configure it in your .env file.',
+        variant: 'destructive',
       });
-    } finally {
-      setLoading(false);
-      setPlanIdLoading(null);
     }
-  };
-  
-  const handleManageSubscription = async () => {
+  }, [paypalClientId, paypalScriptLoaded, toast]);
+
+  const handlePayment = async () => {
+    if (!paypalScriptLoaded) {
+      toast({
+        title: 'Error',
+        description: 'PayPal SDK is still loading. Please wait and try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      setLoading(true);
-      
-      // Call Supabase Edge Function to create a customer portal session
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-      
-      if (error) {
-        throw error;
-      }
-      
-      if (data?.url) {
-        window.location.href = data.url;
+      // Here you would typically create an order on your server and get the order ID
+      const order = await createPaypalOrder(selectedPlan.price);
+
+      if (order?.id) {
+        // Render PayPal buttons and handle payment capture
+        window.paypal.Buttons({
+          createOrder: (data: any, actions: any) => {
+            return actions.order.create({
+              purchase_units: [
+          {
+            amount: {
+              currency_code: 'USD',
+              value: selectedPlan.price,
+            },
+          },
+              ],
+            });
+          },
+          onApprove: async (data: any, actions: any) => {
+            const capture = await actions.order.capture();
+            if (capture.status === 'COMPLETED') {
+              // Payment successful, update subscription status in your database
+              await updateSubscriptionStatus(selectedPlan.id);
+              toast({
+          title: 'Payment Successful',
+          description: `You have successfully subscribed to the ${selectedPlan.name} plan.`,
+              });
+              navigate('/bookshelf'); // Redirect to bookshelf or confirmation page
+            } else {
+              toast({
+          title: 'Payment Failed',
+          description: 'Payment could not be completed. Please try again.',
+          variant: 'destructive',
+              });
+            }
+            setIsLoading(false);
+          },
+          onError: (err: any) => {
+            console.error('PayPal error:', err);
+            toast({
+              title: 'PayPal Error',
+              description: 'There was an error processing your payment. Please try again.',
+              variant: 'destructive',
+            });
+            setIsLoading(false);
+          },
+        }).render('#paypal-button-container'); // Make sure you have a div with this ID in your render
       } else {
-        throw new Error("No portal URL returned");
+        toast({
+          title: 'Error',
+          description: 'Failed to create PayPal order. Please try again.',
+          variant: 'destructive',
+        });
+        setIsLoading(false);
       }
     } catch (error) {
-      console.error("Error creating customer portal session:", error);
+      console.error('Payment error:', error);
       toast({
-        title: "Error",
-        description: "There was a problem accessing your subscription settings. Please try again.",
-        variant: "destructive"
+        title: 'Payment Error',
+        description: 'An unexpected error occurred. Please try again later.',
+        variant: 'destructive',
       });
-    } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-  
-  const getUserPlanId = (): string | undefined => {
-    if (!profile?.subscription) return undefined;
-    return profile.subscription.plan;
+
+  const createPaypalOrder = async (amount: number) => {
+    // Implement your server-side logic to create a PayPal order
+    // This is a placeholder, replace with your actual implementation
+    // Make sure to handle errors and return the order ID
+    try {
+      const response = await fetch('/api/paypal/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ amount }),
+      });
+
+      const data = await response.json();
+      return data; // Assuming your server returns the order object
+    } catch (error) {
+      console.error('Error creating PayPal order:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create PayPal order. Please try again.',
+        variant: 'destructive',
+      });
+      return null;
+    }
   };
-  
-  const currentPlanId = getUserPlanId();
-  
+
+  const updateSubscriptionStatus = async (planId: string) => {
+    // Implement your logic to update the user's subscription status in your database
+    // This is a placeholder, replace with your actual implementation
+    try {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .upsert({
+          created_at: new Date().toISOString(),
+          id: parseInt((await supabase.auth.getUser()).data.user?.id),
+          plan: planId,
+          status: 'active',
+        }, { onConflict: 'id' })
+        .select();
+
+      if (error) {
+        console.error('Error updating subscription status:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to update subscription status. Please contact support.',
+          variant: 'destructive',
+        });
+      } else {
+        console.log('Subscription status updated successfully:', data);
+        toast({
+          title: 'Subscription Updated',
+          description: 'Your subscription has been updated successfully.',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating subscription status:', error);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred while updating subscription status.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
-    <div className="flex flex-col min-h-screen">
+    <>
       <Navbar />
-      <main className="flex-grow">
-        <section className="pt-16 pb-10 bg-gradient-to-b from-purple-100 via-indigo-100 to-white">
-          <div className="container mx-auto px-4 text-center">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-800 via-indigo-700 to-purple-800 bg-clip-text text-transparent">
-              Develop a Love for Reading in Your Child
-            </h1>
-            <p className="text-lg md:text-xl text-purple-700 max-w-3xl mx-auto mb-8">
-              Join our Book Club for ages 7 and above, where we make reading fun, engaging, and rewarding!
-            </p>
-          </div>
-        </section>
-        
-        <section className="py-6 container mx-auto px-4">
-          <MembershipStatusBar />
-          
-          <div className="max-w-4xl mx-auto mb-16">
-            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center text-purple-800">How It Works</h2>
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="bg-white p-6 rounded-lg shadow-md border border-purple-200 transform transition-transform hover:scale-105">
-                <h3 className="text-xl font-semibold mb-4 text-purple-700">Personalized Experience</h3>
-                <ul className="space-y-3">
-                  <li className="flex gap-3">
-                    <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">1</div>
-                    <p className="text-purple-900">Our experts carefully select books tailored to your child's interests and reading level</p>
-                  </li>
-                  <li className="flex gap-3">
-                    <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">2</div>
-                    <p className="text-purple-900">Every month, 3 exciting books will be delivered right to your doorstep</p>
-                  </li>
-                  <li className="flex gap-3">
-                    <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">3</div>
-                    <p className="text-purple-900">Your child will have ample time to enjoy and complete the books</p>
-                  </li>
-                </ul>
-              </div>
-              
-              <div className="bg-white p-6 rounded-lg shadow-md border border-purple-200 transform transition-transform hover:scale-105">
-                <h3 className="text-xl font-semibold mb-4 text-purple-700">Ongoing Support</h3>
-                <ul className="space-y-3">
-                  <li className="flex gap-3">
-                    <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">4</div>
-                    <p className="text-purple-900">Regular interactions with a dedicated book buddy to keep your child motivated</p>
-                  </li>
-                  <li className="flex gap-3">
-                    <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">5</div>
-                    <p className="text-purple-900">We help set achievable reading targets to encourage steady progress</p>
-                  </li>
-                  <li className="flex gap-3">
-                    <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0">6</div>
-                    <p className="text-purple-900">Engaging book discussions after finishing each book</p>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          
-          <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center text-purple-800 relative">
-            <span className="inline-block relative">
-              Choose Your Membership Plan
-              <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-600"></span>
-            </span>
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {membershipPlans.map((plan) => (
-              <PlanCard 
-                key={plan.id} 
-                plan={plan} 
-                onSubscribe={handleSubscribe} 
-                isCurrentPlan={plan.id === currentPlanId} 
-                loading={loading && planIdLoading === plan.id}
-              />
-            ))}
-          </div>
-          
-          {profile?.subscription && (
-            <div className="mt-8 text-center">
-              <Button 
-                variant="outline" 
-                onClick={handleManageSubscription}
-                disabled={loading}
-                className="border-purple-500 text-purple-700 hover:bg-purple-50"
-              >
-                <CreditCard className="mr-2 h-4 w-4" />
-                {loading ? 'Loading...' : 'Manage Your Subscription'}
-              </Button>
-            </div>
-          )}
-          
-          <div className="mt-6 mb-4 flex items-center justify-center gap-4">
-            <img src="https://www.paypalobjects.com/webstatic/mktg/Logo/pp-logo-100px.png" alt="PayPal" className="h-8" />
-            <img src="https://www.mastercard.co.in/content/dam/public/mastercardcom/in/en/consumers/cards-benefits/images/mc-logo-52.svg" alt="Mastercard" className="h-8" />
-            <img src="https://www.visa.co.in/dam/VCOM/regional/ap/india/global-elements/images/in-visa-gold-card-498x280.png" alt="Visa" className="h-8" />
-          </div>
-          
-          <div className="flex justify-center">
-            <p className="text-xs text-gray-500 text-center max-w-lg">
-              Payments are securely processed. We accept major credit/debit cards and PayPal. 
-              All transactions are encrypted and your payment information is never stored on our servers.
-            </p>
-          </div>
-          
-          <div className="mt-12 bg-gradient-to-br from-purple-50 to-indigo-50 p-8 rounded-lg max-w-3xl mx-auto transform transition-transform hover:scale-105">
-            <h3 className="text-xl font-semibold mb-4 text-center text-purple-800">Did You Know?</h3>
-            <p className="text-purple-700 text-center">
-              Studies show that a child begins to enjoy reading in about 3 months, and a solid reading habit forms between 6 to 9 months. 
-              Start your child's reading journey today with our tailored book club experience and watch them develop a passion for books!
-            </p>
-          </div>
-        </section>
-      </main>
+      <div className="container py-12">
+        <MembershipStatusBar />
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {membershipPlans.map((plan) => (
+            <Card key={plan.id} className={cn(selectedPlan.id === plan.id ? "border-2 border-primary" : "border-muted")}>
+              <CardHeader>
+                <CardTitle className="text-2xl font-semibold">{plan.name}</CardTitle>
+                <CardDescription>{plan.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="text-4xl font-bold">
+                    ${plan.price}
+                    <span className="text-sm text-muted-foreground">/month</span>
+                  </div>
+                  <ul className="list-none pl-0 space-y-1">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="flex items-center space-x-2">
+                        <Check className="h-4 w-4 text-green-500" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between items-center">
+                <Button onClick={() => setSelectedPlan(plan)} variant={selectedPlan.id === plan.id ? "default" : "outline"}>
+                  {selectedPlan.id === plan.id ? "Selected" : "Select Plan"}
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+        <div className="mt-8">
+          <h2 className="text-2xl font-semibold mb-4">Payment Options</h2>
+          <div id="paypal-button-container" className="mt-4"></div>
+          <Button onClick={handlePayment} disabled={isLoading} className="w-full mt-4">
+            {isLoading ? "Processing Payment..." : "Subscribe with PayPal"}
+          </Button>
+        </div>
+      </div>
       <Footer />
-    </div>
+    </>
   );
 };
 

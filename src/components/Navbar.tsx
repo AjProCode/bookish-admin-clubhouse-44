@@ -112,8 +112,7 @@ const Navbar: React.FC = () => {
           <img 
             src="/lovable-uploads/645f9f6e-de35-4451-8744-d12fc8979b30.png" 
             alt="Skillbag Logo" 
-            className="h-8"
-            style={{ background: 'transparent' }}
+            className="h-8 transparent-bg"
           />
         </Link>
 

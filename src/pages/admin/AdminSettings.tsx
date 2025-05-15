@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminHeader from '@/components/admin/AdminHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +15,8 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 const AdminSettings: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,12 +29,42 @@ const AdminSettings: React.FC = () => {
   });
   
   const [emailSettings, setEmailSettings] = useState({
-    fromEmail: 'noreply@skillbagbooks.com',
-    welcomeEmailSubject: 'Welcome to SkillBag Book Club',
-    welcomeEmailContent: 'Thank you for joining our community of book lovers! We are excited to have you as a member...',
-    enableNotifications: true,
+    smtpHost: '',
+    smtpPort: '',
+    smtpUsername: '',
+    smtpPassword: '',
+    fromEmail: '',
   });
-  
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAdminSession = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', Number(sessionData.session.user.id))
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          navigate('/login'); // Redirect to login if profile fetch fails
+          return;
+        }
+
+        if (profileData?.role !== 'admin') {
+          navigate('/login'); // Redirect if not an admin
+        }
+      } else {
+        navigate('/login'); // Redirect if no session
+      }
+    };
+
+    checkAdminSession();
+  }, [navigate]);
+
   const handleGeneralSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setGeneralSettings(prev => ({
@@ -182,6 +213,47 @@ const AdminSettings: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="smtpHost">SMTP Host</Label>
+                  <Input
+                    id="smtpHost"
+                    name="smtpHost"
+                    value={emailSettings.smtpHost}
+                    onChange={handleEmailSettingsChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="smtpPort">SMTP Port</Label>
+                  <Input
+                    id="smtpPort"
+                    name="smtpPort"
+                    value={emailSettings.smtpPort}
+                    onChange={handleEmailSettingsChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="smtpUsername">SMTP Username</Label>
+                  <Input
+                    id="smtpUsername"
+                    name="smtpUsername"
+                    value={emailSettings.smtpUsername}
+                    onChange={handleEmailSettingsChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="smtpPassword">SMTP Password</Label>
+                  <Input
+                    id="smtpPassword"
+                    name="smtpPassword"
+                    type="password"
+                    value={emailSettings.smtpPassword}
+                    onChange={handleEmailSettingsChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
                   <Label htmlFor="fromEmail">From Email</Label>
                   <Input
                     id="fromEmail"
@@ -189,41 +261,6 @@ const AdminSettings: React.FC = () => {
                     type="email"
                     value={emailSettings.fromEmail}
                     onChange={handleEmailSettingsChange}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="welcomeEmailSubject">Welcome Email Subject</Label>
-                  <Input
-                    id="welcomeEmailSubject"
-                    name="welcomeEmailSubject"
-                    value={emailSettings.welcomeEmailSubject}
-                    onChange={handleEmailSettingsChange}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="welcomeEmailContent">Welcome Email Content</Label>
-                  <Textarea
-                    id="welcomeEmailContent"
-                    name="welcomeEmailContent"
-                    value={emailSettings.welcomeEmailContent}
-                    onChange={handleEmailSettingsChange}
-                    rows={5}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="enableNotifications">Email Notifications</Label>
-                    <p className="text-sm text-gray-500">Send emails for important events</p>
-                  </div>
-                  <Switch
-                    id="enableNotifications"
-                    checked={emailSettings.enableNotifications}
-                    onCheckedChange={(checked) => 
-                      handleSwitchChange('enableNotifications', checked, 'email')
-                    }
                   />
                 </div>
               </CardContent>

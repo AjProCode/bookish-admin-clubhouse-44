@@ -1,15 +1,16 @@
-
+import React from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { DayPickerProvider } from "react-day-picker";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Sonner } from "@/components/ui/sonner";
+import {
+  TooltipProvider,
+} from "@/components/ui/tooltip"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import MembershipRequired from "@/components/MembershipRequired";
 
-// Pages
+// Public Pages
 import Index from "./pages/Index";
 import BooksPage from "./pages/BooksPage";
-import BookDetail from "./pages/BookDetail";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 import BookshelfPage from "./pages/BookshelfPage";
@@ -24,41 +25,44 @@ import AdminBooks from "./pages/admin/AdminBooks";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminSettings from "./pages/admin/AdminSettings";
 import MembershipPlans from "./pages/admin/MembershipPlans";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/books" element={<BooksPage />} />
-          <Route path="/books/:id" element={<BookDetail />} />
-          <Route path="/membership" element={<MembershipPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          
-          {/* Protected Routes (require membership) */}
-          <Route path="/books/:id/review" element={<MembershipRequired><BookReviewPage /></MembershipRequired>} />
-          <Route path="/bookshelf" element={<MembershipRequired><BookshelfPage /></MembershipRequired>} />
-          <Route path="/reading-log" element={<MembershipRequired><ReadingLogPage /></MembershipRequired>} />
-          
-          {/* Admin Routes */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="books" element={<AdminBooks />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="membership-plans" element={<MembershipPlans />} />
-            <Route path="settings" element={<AdminSettings />} />
-          </Route>
-          
-          {/* Catch-all route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <DayPickerProvider initialProps={{}}>
+        <Router>
+          <Toaster />
+          <Sonner />
+          <Navbar />
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/books" element={<BooksPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/bookshelf" element={<BookshelfPage />} />
+            <Route path="/reading-log" element={<ReadingLogPage />} />
+            <Route path="/book-review/:bookId" element={<BookReviewPage />} />
+            <Route path="/membership" element={<MembershipPage />} />
+
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="books" element={<AdminBooks />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="settings" element={<AdminSettings />} />
+              <Route path="membership-plans" element={<MembershipPlans />} />
+            </Route>
+
+            {/* Not Found Route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Footer />
+        </Router>
+      </DayPickerProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
