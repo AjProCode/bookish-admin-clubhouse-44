@@ -41,7 +41,7 @@ const MembershipStatusBar: React.FC = () => {
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
         
         if (profileError) {
           console.error("Error fetching profile:", profileError);
@@ -56,7 +56,7 @@ const MembershipStatusBar: React.FC = () => {
         
         // Get subscription data
         const { data: subscriptionData, error: subscriptionError } = await supabase
-          .from('subscriptions')
+          .from('user_subscriptions')
           .select('*')
           .eq('user_id', session.user.id)
           .maybeSingle();

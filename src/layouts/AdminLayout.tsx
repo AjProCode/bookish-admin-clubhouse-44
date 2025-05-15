@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/admin/AdminSidebar';
-import AdminHeader from '../components/admin/AdminHeader';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -16,6 +15,9 @@ const AdminLayout: React.FC = () => {
   const [user, setUser] = useState<UserData | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Admin credentials from environment variables
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
 
   useEffect(() => {
     // Check if user is logged in and is an admin
@@ -38,6 +40,14 @@ const AdminLayout: React.FC = () => {
           id: session.user.id,
           email: session.user.email
         });
+        
+        // For demo purposes, auto-grant admin access to the admin email
+        if (session.user.email === adminEmail) {
+          console.log("Admin access granted via email match");
+          setIsAdmin(true);
+          setIsLoading(false);
+          return;
+        }
         
         // Check if user has admin role
         const { data, error } = await supabase
@@ -82,7 +92,7 @@ const AdminLayout: React.FC = () => {
     };
     
     checkUser();
-  }, [navigate]);
+  }, [navigate, adminEmail]);
   
   if (isLoading) {
     return <div>Loading...</div>;
@@ -92,7 +102,6 @@ const AdminLayout: React.FC = () => {
     <div className="flex h-screen bg-gray-100">
       <AdminSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <AdminHeader title="Admin Panel" />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
           <div className="container mx-auto px-6 py-8">
             <Outlet />
