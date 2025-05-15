@@ -9,8 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -180,7 +178,7 @@ const LoginPage: React.FC = () => {
     }
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { data, error: authError } = await supabase.auth.signUp({
         email: registerEmail,
         password: registerPassword,
         options: {
@@ -198,7 +196,7 @@ const LoginPage: React.FC = () => {
         return;
       }
       
-      if (data.user) {
+      if (data?.user) {
         console.log("Registration successful:", data.user);
         
         // Create a profile record for the user - using the create_profile function
@@ -228,81 +226,77 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <>
-      <Navbar />
-      <div className="container py-12">
-        <Card>
-          <CardHeader>
-            <CardTitle>Authentication</CardTitle>
-            <CardDescription>Login or create a new account</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="login" className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
-              </TabsList>
-              <TabsContent value="login">
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" placeholder="m@example.com" type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
-                  </div>
-                  {loginError && (
-                    <p className="text-red-500">{loginError}</p>
-                  )}
-                  <Button onClick={handleLogin} disabled={isSubmitting}>
-                    {isSubmitting ? "Logging in..." : "Login"}
-                  </Button>
-                  <p className="text-sm text-muted-foreground">
-                    Don't have an account? <Link to="/register">Register</Link>
-                  </p>
+    <div className="container py-12">
+      <Card>
+        <CardHeader>
+          <CardTitle>Authentication</CardTitle>
+          <CardDescription>Login or create a new account</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="login" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="register">Register</TabsTrigger>
+            </TabsList>
+            <TabsContent value="login">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" placeholder="m@example.com" type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
                 </div>
-              </TabsContent>
-              <TabsContent value="register">
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="registerEmail">Email</Label>
-                    <Input id="registerEmail" placeholder="m@example.com" type="email" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="registerPassword">Password</Label>
-                    <Input id="registerPassword" type="password" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="terms" checked={agreeToTerms} onCheckedChange={(checked) => setAgreeToTerms(checked === true)} />
-                    <Label htmlFor="terms">Agree to terms and conditions</Label>
-                  </div>
-                  {registrationError && (
-                    <p className="text-red-500">{registrationError}</p>
-                  )}
-                  <Button onClick={handleRegister} disabled={isSubmitting}>
-                    {isSubmitting ? "Registering..." : "Register"}
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input id="password" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
                 </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
-      <Footer />
-    </>
+                {loginError && (
+                  <p className="text-red-500">{loginError}</p>
+                )}
+                <Button onClick={handleLogin} disabled={isSubmitting}>
+                  {isSubmitting ? "Logging in..." : "Login"}
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Don't have an account? <Link to="/register">Register</Link>
+                </p>
+              </div>
+            </TabsContent>
+            <TabsContent value="register">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input id="firstName" placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="registerEmail">Email</Label>
+                  <Input id="registerEmail" placeholder="m@example.com" type="email" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="registerPassword">Password</Label>
+                  <Input id="registerPassword" type="password" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="terms" checked={agreeToTerms} onCheckedChange={(checked) => setAgreeToTerms(checked === true)} />
+                  <Label htmlFor="terms">Agree to terms and conditions</Label>
+                </div>
+                {registrationError && (
+                  <p className="text-red-500">{registrationError}</p>
+                )}
+                <Button onClick={handleRegister} disabled={isSubmitting}>
+                  {isSubmitting ? "Registering..." : "Register"}
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

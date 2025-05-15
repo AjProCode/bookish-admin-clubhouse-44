@@ -1,3 +1,4 @@
+
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { DayPickerProvider } from "react-day-picker";
@@ -30,6 +31,15 @@ import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
 
+// Layout component to handle common structure with Navbar and Footer
+const AppLayout = ({ children }: { children: React.ReactNode }) => (
+  <>
+    <Navbar />
+    <main>{children}</main>
+    <Footer />
+  </>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -37,16 +47,17 @@ const App = () => (
         <Router>
           <Toaster />
           <Sonner />
-          <Navbar />
           <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Index />} />
-            <Route path="/books" element={<BooksPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/bookshelf" element={<BookshelfPage />} />
-            <Route path="/reading-log" element={<ReadingLogPage />} />
-            <Route path="/book-review/:bookId" element={<BookReviewPage />} />
-            <Route path="/membership" element={<MembershipPage />} />
+            {/* Public Routes - with Layout */}
+            <Route path="/" element={<AppLayout><Index /></AppLayout>} />
+            <Route path="/books" element={<AppLayout><BooksPage /></AppLayout>} />
+            <Route path="/bookshelf" element={<AppLayout><BookshelfPage /></AppLayout>} />
+            <Route path="/reading-log" element={<AppLayout><ReadingLogPage /></AppLayout>} />
+            <Route path="/book-review/:bookId" element={<AppLayout><BookReviewPage /></AppLayout>} />
+            <Route path="/membership" element={<AppLayout><MembershipPage /></AppLayout>} />
+            
+            {/* Login page - no layout since we removed nav/footer from the component */}
+            <Route path="/login" element={<AppLayout><LoginPage /></AppLayout>} />
 
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>
@@ -58,9 +69,8 @@ const App = () => (
             </Route>
 
             {/* Not Found Route */}
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
           </Routes>
-          <Footer />
         </Router>
       </DayPickerProvider>
     </TooltipProvider>

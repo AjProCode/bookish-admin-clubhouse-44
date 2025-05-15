@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -12,13 +13,6 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Check, CreditCard } from 'lucide-react';
-
-// Extend the Window interface to include the PayPal property
-declare global {
-  interface Window {
-    paypal: any;
-  }
-}
 import { cn } from '@/lib/utils';
 import MembershipStatusBar from '@/components/MembershipStatusBar';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -30,6 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import PayPalCheckoutButton from '@/components/PayPalCheckoutButton';
 
 // Update membership plans data with fixed types
 const membershipPlans = [
@@ -37,7 +32,7 @@ const membershipPlans = [
     id: 'monthly',
     name: 'Monthly Plan',
     description: 'Perfect for those who want to try out our service',
-    price: "1199",
+    price: "11.99",
     duration: 1,
     deliveryFrequency: 'monthly',
     booksPerDelivery: 3,
@@ -54,7 +49,7 @@ const membershipPlans = [
     id: 'quarterly',
     name: '3 Months',
     description: 'Our recommended plan for developing reading habits',
-    price: "3000",
+    price: "30.00",
     duration: 3,
     deliveryFrequency: 'monthly',
     booksPerDelivery: 3,
@@ -73,7 +68,7 @@ const membershipPlans = [
     id: 'biannual',
     name: '6 Months',
     description: 'Great value for building a solid reading foundation',
-    price: "5500",
+    price: "55.00",
     duration: 6,
     deliveryFrequency: 'monthly',
     booksPerDelivery: 3,
@@ -92,7 +87,7 @@ const membershipPlans = [
     id: 'annual',
     name: 'Annual',
     description: 'Best value for committed readers',
-    price: "10000",
+    price: "100.00",
     duration: 12,
     deliveryFrequency: 'monthly',
     booksPerDelivery: 3,
@@ -162,7 +157,7 @@ const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan, loadi
       </CardHeader>
       <CardContent className="flex-1">
         <div className="mb-4">
-          <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">₹{parseInt(plan.price, 10)}</span>
+          <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">${plan.price}</span>
           <span className="text-gray-500 ml-2">
             for {plan.duration} {plan.duration === 1 ? 'month' : 'months'}
           </span>
@@ -242,25 +237,8 @@ const MembershipPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [planIdLoading, setPlanIdLoading] = useState<string | null>(null);
   const navigate = useNavigate();
-  const [paypalScriptLoaded, setPaypalScriptLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState({
-    id: 'monthly',
-    name: 'Monthly Plan',
-    description: 'Perfect for those who want to try out our service',
-    price: '11.99',
-    duration: 1,
-    deliveryFrequency: 'monthly',
-    booksPerDelivery: 3,
-    features: [
-      'Personalized book selection',
-      'Convenient delivery',
-      'Interactive book buddy',
-      'Goal setting',
-      'Book discussions'
-    ],
-    isActive: true
-  });
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('monthly');
   
   useEffect(() => {
     const success = searchParams.get('success');
@@ -273,6 +251,17 @@ const MembershipPage: React.FC = () => {
         description: `Your subscription with ${provider} has been processed successfully.`,
         variant: "default"
       });
+      
+      // Update the local user subscription status
+      const updateLocalSubscription = async () => {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          // Refresh the profile data to get the updated subscription status
+          fetchProfile();
+        }
+      };
+      
+      updateLocalSubscription();
     } else if (canceled === 'true') {
       toast({
         title: "Subscription Canceled",
@@ -282,60 +271,57 @@ const MembershipPage: React.FC = () => {
     }
   }, [searchParams]);
   
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        // Get current user
-        const { data: userData } = await supabase.auth.getUser();
-        const user = userData.user;
-        if (!user) {
-          return;
-        }
-        
-        // Get user profile with subscription info
-        const { data, error } = await supabase
-          .from('profiles')
-          .select(`
-            id
-          `)
-          .eq('id', user.id)
-          .maybeSingle();
-        
-        if (error) {
-          console.error("Error fetching profile", error);
-          return;
-        }
-        
-        // Get subscription info
-        const { data: subData, error: subError } = await supabase
-          .from('user_subscriptions')
-          .select('plan')
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-          .maybeSingle();
-          
-        if (subError) {
-          console.error("Error fetching subscription", subError);
-        }
-        
-        if (data) {
-          setProfile({
-            id: data.id.toString(),
-            subscription: subData ? {
-              plan: subData.plan
-            } : undefined
-          });
-        }
-      } catch (error) {
-        console.error("Error in useEffect:", error);
+  const fetchProfile = async () => {
+    try {
+      // Get current user
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      if (!user) {
+        return;
       }
-    };
-
+      
+      // Get user profile with subscription info
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          id
+        `)
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error("Error fetching profile", error);
+        return;
+      }
+      
+      // Get subscription info
+      const { data: subData, error: subError } = await supabase
+        .from('user_subscriptions')
+        .select('plan')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+        
+      if (subError) {
+        console.error("Error fetching subscription", subError);
+      }
+      
+      if (data) {
+        setProfile({
+          id: data.id.toString(),
+          subscription: subData ? {
+            plan: subData.plan
+          } : undefined
+        });
+      }
+    } catch (error) {
+      console.error("Error in fetchProfile:", error);
+    }
+  };
+  
+  useEffect(() => {
     fetchProfile();
-    
   }, [searchParams]);
-
-  const paypalClientId = process.env.PAYPAL_CLIENT_ID;
 
   useEffect(() => {
     const checkSession = async () => {
@@ -347,226 +333,82 @@ const MembershipPage: React.FC = () => {
     checkSession();
   }, [navigate]);
 
-  useEffect(() => {
-    if (paypalClientId) {
-      const addPaypalScript = async () => {
-        const script = document.createElement('script');
-        script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD`;
-        script.type = 'text/javascript';
-        script.async = true;
-        script.onload = () => setPaypalScriptLoaded(true);
-        script.onerror = () => {
-          console.error('Failed to load PayPal SDK script.');
-          toast({
-            title: 'Error',
-            description: 'Failed to load PayPal, please try again later.',
-            variant: 'destructive',
-          });
-        };
-        document.body.appendChild(script);
-      };
-
-      if (!paypalScriptLoaded) {
-        addPaypalScript();
-      }
-    } else {
-      console.error('PayPal Client ID is not set in environment variables.');
-      toast({
-        title: 'Error',
-        description: 'PayPal Client ID is not set. Please configure it in your .env file.',
-        variant: 'destructive',
-      });
-    }
-  }, [paypalClientId, paypalScriptLoaded, toast]);
-
-  const handlePayment = async () => {
-    if (!paypalScriptLoaded) {
-      toast({
-        title: 'Error',
-        description: 'PayPal SDK is still loading. Please wait and try again.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const handleSubscribe = async (planId: string, paymentMethod: string) => {
+    setPlanIdLoading(planId);
     setIsLoading(true);
-
+    
     try {
-      // Here you would typically create an order on your server and get the order ID
-      const order = await createPaypalOrder(selectedPlan.price);
-
-      if (order?.id) {
-        // Render PayPal buttons and handle payment capture
-        window.paypal.Buttons({
-          createOrder: (data: any, actions: any) => {
-            return actions.order.create({
-              purchase_units: [
-          {
-            amount: {
-              currency_code: 'USD',
-              value: selectedPlan.price,
-            },
-          },
-              ],
-            });
-          },
-          onApprove: async (data: any, actions: any) => {
-            const capture = await actions.order.capture();
-            if (capture.status === 'COMPLETED') {
-              // Payment successful, update subscription status in your database
-              await updateSubscriptionStatus(selectedPlan.id);
-              toast({
-          title: 'Payment Successful',
-          description: `You have successfully subscribed to the ${selectedPlan.name} plan.`,
-              });
-              navigate('/bookshelf'); // Redirect to bookshelf or confirmation page
-            } else {
-              toast({
-          title: 'Payment Failed',
-          description: 'Payment could not be completed. Please try again.',
-          variant: 'destructive',
-              });
-            }
-            setIsLoading(false);
-          },
-          onError: (err: any) => {
-            console.error('PayPal error:', err);
-            toast({
-              title: 'PayPal Error',
-              description: 'There was an error processing your payment. Please try again.',
-              variant: 'destructive',
-            });
-            setIsLoading(false);
-          },
-        }).render('#paypal-button-container'); // Make sure you have a div with this ID in your render
-      } else {
+      if (paymentMethod === 'paypal') {
+        setSelectedPlanId(planId);
+      } else if (paymentMethod === 'stripe') {
         toast({
-          title: 'Error',
-          description: 'Failed to create PayPal order. Please try again.',
-          variant: 'destructive',
+          title: "Stripe Integration",
+          description: "Stripe payment is not configured in this version. Please use PayPal instead.",
+          variant: "destructive"
         });
-        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Payment error:', error);
+    } catch (error: any) {
+      console.error("Subscription error:", error);
       toast({
-        title: 'Payment Error',
-        description: 'An unexpected error occurred. Please try again later.',
-        variant: 'destructive',
+        title: "Subscription Error",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive"
       });
+    } finally {
       setIsLoading(false);
-    }
-  };
-
-  const createPaypalOrder = async (amount: number) => {
-    // Implement your server-side logic to create a PayPal order
-    // This is a placeholder, replace with your actual implementation
-    // Make sure to handle errors and return the order ID
-    try {
-      const response = await fetch('/api/paypal/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ amount }),
-      });
-
-      const data = await response.json();
-      return data; // Assuming your server returns the order object
-    } catch (error) {
-      console.error('Error creating PayPal order:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create PayPal order. Please try again.',
-        variant: 'destructive',
-      });
-      return null;
-    }
-  };
-
-  const updateSubscriptionStatus = async (planId: string) => {
-    // Implement your logic to update the user's subscription status in your database
-    // This is a placeholder, replace with your actual implementation
-    try {
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .upsert({
-          created_at: new Date().toISOString(),
-          id: parseInt((await supabase.auth.getUser()).data.user?.id),
-          plan: planId,
-          status: 'active',
-        }, { onConflict: 'id' })
-        .select();
-
-      if (error) {
-        console.error('Error updating subscription status:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to update subscription status. Please contact support.',
-          variant: 'destructive',
-        });
-      } else {
-        console.log('Subscription status updated successfully:', data);
-        toast({
-          title: 'Subscription Updated',
-          description: 'Your subscription has been updated successfully.',
-        });
-      }
-    } catch (error) {
-      console.error('Error updating subscription status:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred while updating subscription status.',
-        variant: 'destructive',
-      });
+      setPlanIdLoading(null);
     }
   };
 
   return (
     <>
-      <Navbar />
       <div className="container py-12">
         <MembershipStatusBar />
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        
+        <h1 className="text-3xl font-bold mb-8 text-center">Choose Your Membership Plan</h1>
+        
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {membershipPlans.map((plan) => (
-            <Card key={plan.id} className={cn(selectedPlan.id === plan.id ? "border-2 border-primary" : "border-muted")}>
-              <CardHeader>
-                <CardTitle className="text-2xl font-semibold">{plan.name}</CardTitle>
-                <CardDescription>{plan.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="text-4xl font-bold">
-                    ${plan.price}
-                    <span className="text-sm text-muted-foreground">/month</span>
-                  </div>
-                  <ul className="list-none pl-0 space-y-1">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-center space-x-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-between items-center">
-                <Button onClick={() => setSelectedPlan(plan)} variant={selectedPlan.id === plan.id ? "default" : "outline"}>
-                  {selectedPlan.id === plan.id ? "Selected" : "Select Plan"}
-                </Button>
-              </CardFooter>
-            </Card>
+            <PlanCard
+              key={plan.id}
+              plan={plan}
+              onSubscribe={handleSubscribe}
+              isCurrentPlan={profile?.subscription?.plan === plan.id}
+              loading={planIdLoading === plan.id && loading}
+            />
           ))}
         </div>
-        <div className="mt-8">
-          <h2 className="text-2xl font-semibold mb-4">Payment Options</h2>
-          <div id="paypal-button-container" className="mt-4"></div>
-          <Button onClick={handlePayment} disabled={isLoading} className="w-full mt-4">
-            {isLoading ? "Processing Payment..." : "Subscribe with PayPal"}
-          </Button>
+        
+        <div className="mt-12 max-w-md mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Complete Your Subscription</CardTitle>
+              <CardDescription>
+                Make a secure payment with PayPal to start your subscription
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center mb-4">
+                <p className="text-lg font-semibold">
+                  Selected Plan: {membershipPlans.find(p => p.id === selectedPlanId)?.name || "Monthly Plan"}
+                </p>
+                <p className="text-sm text-gray-500">
+                  ${membershipPlans.find(p => p.id === selectedPlanId)?.price || "11.99"} for {membershipPlans.find(p => p.id === selectedPlanId)?.duration || 1} {membershipPlans.find(p => p.id === selectedPlanId)?.duration === 1 ? 'month' : 'months'}
+                </p>
+              </div>
+              <PayPalCheckoutButton 
+                planId={selectedPlanId} 
+                className="w-full py-2"
+                isLoading={isLoading}
+                setIsLoading={setIsLoading}
+              />
+              <p className="text-xs text-center mt-2 text-gray-500">
+                You will be redirected to PayPal to complete your payment securely.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
-      <Footer />
     </>
   );
 };
