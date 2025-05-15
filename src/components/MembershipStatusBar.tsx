@@ -66,8 +66,8 @@ const MembershipStatusBar: React.FC = () => {
           setProfile({
             id: profileData.id.toString(),
             email: profileData.email || user.email,
-            first_name: profileData.first_name || "",
-            last_name: profileData.last_name || "",
+            first_name: profileData.first_name || null,
+            last_name: profileData.last_name || null,
             subscription: subscriptionData ? {
               status: subscriptionData.status || "",
               plan: subscriptionData.plan || "",
