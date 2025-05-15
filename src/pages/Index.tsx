@@ -1,14 +1,11 @@
 
 import React from 'react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import HeroSection from '@/components/HeroSection';
 import FeaturedBooks from '@/components/FeaturedBooks';
 
 const Index = () => {
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
       <main className="flex-grow">
         <HeroSection />
         <FeaturedBooks />
@@ -62,7 +59,6 @@ const Index = () => {
           </div>
         </section>
       </main>
-      <Footer />
     </div>
   );
 };

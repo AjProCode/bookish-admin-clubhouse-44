@@ -1,20 +1,23 @@
+
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { toast } from '@/hooks/use-toast';
+
+interface Subscription {
+  status: string;
+  plan: string;
+  end_date: string;
+  next_delivery_date: string | null;
+}
 
 interface UserProfile {
   id: string;
-  email: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  subscription?: {
-    status: string;
-    plan: string;
-    end_date: string;
-    next_delivery_date?: string;
-  };
+  email?: string;
+  subscription?: Subscription;
 }
 
 const MembershipStatusBar: React.FC = () => {
@@ -25,13 +28,10 @@ const MembershipStatusBar: React.FC = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        setLoading(true);
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData.session;
         
-        // Get current user
-        const { data: userData } = await supabase.auth.getUser();
-        const user = userData.user;
-        
-        if (!user) {
+        if (!session) {
           setLoading(false);
           return;
         }
@@ -39,78 +39,73 @@ const MembershipStatusBar: React.FC = () => {
         // Get user profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('id, email, first_name, last_name')
-          .eq('id', user.id)
-          .maybeSingle();
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
         
         if (profileError) {
-          console.error("Error fetching profile", profileError);
+          console.error("Error fetching profile:", profileError);
+          toast({
+            title: "Error",
+            description: "Could not load your profile information",
+            variant: "destructive",
+          });
           setLoading(false);
           return;
         }
-
-        // Get subscription info
+        
+        // Get subscription data
         const { data: subscriptionData, error: subscriptionError } = await supabase
-          .from('user_subscriptions')
+          .from('subscriptions')
           .select('*')
-          .eq('user_id', user.id)
-          .eq('status', 'active')
+          .eq('user_id', session.user.id)
           .maybeSingle();
         
         if (subscriptionError) {
-          console.error("Error fetching subscription", subscriptionError);
+          console.error("Error fetching subscription:", subscriptionError);
         }
         
-        if (profileData) {
-          setProfile({
-            id: profileData.id.toString(),
-            email: profileData.email || user.email,
-            first_name: profileData.first_name || null,
-            last_name: profileData.last_name || null,
-            subscription: subscriptionData ? {
-              status: subscriptionData.status || "",
-              plan: subscriptionData.plan || "",
-              end_date: subscriptionData.end_date || "",
-              next_delivery_date: subscriptionData.next_delivery_date || ""
-            } : undefined
-          });
-        }
+        setProfile({
+          id: session.user.id,
+          email: session.user.email,
+          subscription: subscriptionData ? {
+            status: subscriptionData.status || "",
+            plan: subscriptionData.plan || "",
+            end_date: subscriptionData.end_date || "",
+            next_delivery_date: subscriptionData.next_delivery_date || null
+          } : undefined
+        });
+        
+        setLoading(false);
       } catch (error) {
-        console.error("Error in useEffect:", error);
-      } finally {
+        console.error("Error in fetchProfile:", error);
         setLoading(false);
       }
     };
-
+    
     fetchProfile();
-    
-    // Subscribe to auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
-      fetchProfile();
-    });
-    
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
   }, []);
-
-  const formatDate = (dateString?: string) => {
+  
+  // Function to format date string
+  const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric', month: 'short', day: 'numeric'
-    });
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }).format(date);
   };
-
-  const handleLogin = () => navigate('/login');
-  const handleUpgrade = () => navigate('/membership');
+  
+  const handleManageMembership = () => {
+    navigate('/membership');
+  };
   
   if (loading) {
     return (
-      <Card className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50">
-        <CardContent className="flex items-center justify-between p-4">
-          <div>
-            <p className="font-medium">Loading membership status...</p>
-          </div>
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <p>Loading membership information...</p>
         </CardContent>
       </Card>
     );
@@ -118,47 +113,46 @@ const MembershipStatusBar: React.FC = () => {
   
   if (!profile) {
     return (
-      <Card className="mb-6 bg-gradient-to-r from-purple-100 to-indigo-100 border-dashed border-purple-300">
-        <CardContent className="flex items-center justify-between p-4">
+      <Card className="mb-6">
+        <CardContent className="pt-6 flex justify-between items-center">
           <div>
-            <p className="font-medium text-purple-900">Join Skillbag to access exclusive features</p>
-            <p className="text-sm text-purple-700">Sign in or create an account to get started</p>
+            <p>You need to be logged in to view membership details.</p>
           </div>
-          <Button onClick={handleLogin} className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700">Sign In</Button>
+          <Button onClick={() => navigate('/login')}>Login</Button>
         </CardContent>
       </Card>
     );
   }
-
-  if (!profile.subscription || profile.subscription.status !== 'active') {
-    return (
-      <Card className="mb-6 bg-gradient-to-r from-orange-50 to-amber-100">
-        <CardContent className="flex items-center justify-between p-4">
-          <div>
-            <p className="font-medium text-orange-900">You don't have an active subscription</p>
-            <p className="text-sm text-orange-700">Upgrade to receive our monthly book deliveries</p>
-          </div>
-          <Button onClick={handleUpgrade} className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700">View Plans</Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  
+  const hasActiveSubscription = profile.subscription && profile.subscription.status === 'active';
+  
   return (
-    <Card className="mb-6 bg-gradient-to-r from-green-50 to-emerald-100 border-green-200">
-      <CardContent className="flex items-center justify-between p-4">
+    <Card className="mb-6">
+      <CardContent className="pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <p className="font-medium text-emerald-800">
-            Active {profile.subscription.plan.charAt(0).toUpperCase() + profile.subscription.plan.slice(1)} Subscription
-          </p>
-          <p className="text-sm text-emerald-700">
-            Valid until {formatDate(profile.subscription.end_date)}
-            {profile.subscription.next_delivery_date && 
-              ` • Next delivery: ${formatDate(profile.subscription.next_delivery_date)}`}
-          </p>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-lg font-semibold">Membership Status:</h3>
+            {hasActiveSubscription ? (
+              <Badge className="bg-green-500">Active</Badge>
+            ) : (
+              <Badge variant="outline" className="text-amber-500 border-amber-500">Inactive</Badge>
+            )}
+          </div>
+          
+          {hasActiveSubscription && profile.subscription ? (
+            <div className="text-sm text-gray-600">
+              <p>Plan: <span className="font-medium">{profile.subscription.plan}</span></p>
+              <p>Renewal Date: <span className="font-medium">{formatDate(profile.subscription.end_date)}</span></p>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-600">
+              Get access to premium books and features with a membership plan.
+            </p>
+          )}
         </div>
-        <Button variant="outline" className="border-emerald-500 text-emerald-600 hover:bg-emerald-50" onClick={handleUpgrade}>
-          Manage Subscription
+        
+        <Button onClick={handleManageMembership}>
+          {hasActiveSubscription ? 'Manage Membership' : 'Get Membership'}
         </Button>
       </CardContent>
     </Card>

@@ -1,413 +1,463 @@
 
 import React, { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Check, CreditCard } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import MembershipStatusBar from '@/components/MembershipStatusBar';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import MembershipRequired from '@/components/MembershipRequired';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PayPalCheckoutButton from '@/components/PayPalCheckoutButton';
 
-// Update membership plans data with fixed types
-const membershipPlans = [
-  {
-    id: 'monthly',
-    name: 'Monthly Plan',
-    description: 'Perfect for those who want to try out our service',
-    price: "11.99",
-    duration: 1,
-    deliveryFrequency: 'monthly',
-    booksPerDelivery: 3,
-    features: [
-      'Personalized book selection',
-      'Convenient delivery',
-      'Interactive book buddy',
-      'Goal setting',
-      'Book discussions'
-    ],
-    isActive: true
-  },
-  {
-    id: 'quarterly',
-    name: '3 Months',
-    description: 'Our recommended plan for developing reading habits',
-    price: "30.00",
-    duration: 3,
-    deliveryFrequency: 'monthly',
-    booksPerDelivery: 3,
-    features: [
-      'Personalized book selection',
-      'Convenient delivery',
-      'Interactive book buddy',
-      'Goal setting',
-      'Book discussions',
-      'Progressive reading levels'
-    ],
-    isActive: true,
-    isPopular: true
-  },
-  {
-    id: 'biannual',
-    name: '6 Months',
-    description: 'Great value for building a solid reading foundation',
-    price: "55.00",
-    duration: 6,
-    deliveryFrequency: 'monthly',
-    booksPerDelivery: 3,
-    features: [
-      'Personalized book selection',
-      'Convenient delivery',
-      'Interactive book buddy',
-      'Goal setting',
-      'Book discussions',
-      'Progressive reading levels',
-      'Premium book selection'
-    ],
-    isActive: true
-  },
-  {
-    id: 'annual',
-    name: 'Annual',
-    description: 'Best value for committed readers',
-    price: "100.00",
-    duration: 12,
-    deliveryFrequency: 'monthly',
-    booksPerDelivery: 3,
-    features: [
-      'Personalized book selection',
-      'Convenient delivery',
-      'Interactive book buddy',
-      'Goal setting',
-      'Book discussions',
-      'Progressive reading levels',
-      'Premium book selection',
-      'Annual reading achievement award'
-    ],
-    isActive: true
-  }
-];
-
-interface UserProfile {
+interface Plan {
   id: string;
-  subscription?: {
-    plan: string;
-  };
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+  billing_cycle: string;
+  popular?: boolean;
 }
 
-interface PlanProps {
-  plan: {
-    id: string;
-    name: string;
-    description: string;
-    price: string;
-    duration: number;
-    features: string[];
-    isPopular?: boolean;
-  };
-  onSubscribe: (planId: string, paymentMethod: string) => void;
-  isCurrentPlan?: boolean;
-  loading?: boolean;
+interface Subscription {
+  id: string;
+  status: string;
+  plan: string;
+  created_at: string;
+  period_end: string;
+  cancel_at_period_end: boolean;
 }
 
-const PlanCard: React.FC<PlanProps> = ({ plan, onSubscribe, isCurrentPlan, loading }) => {
-  return (
-    <Card className={cn(
-      "flex flex-col h-full transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1",
-      plan.isPopular && "border-purple-500 border-2 bg-gradient-to-b from-purple-50 to-white",
-      isCurrentPlan && "border-emerald-500 border-2 bg-gradient-to-b from-emerald-50 to-white"
-    )}>
-      <CardHeader className="pb-4 relative overflow-hidden">
-        {plan.isPopular && (
-          <div className="absolute top-0 right-0 w-32 transform translate-x-8 -translate-y-8">
-            <div className="bg-purple-500 text-white py-1 px-6 transform rotate-45 shadow-md text-center text-xs font-bold">
-              POPULAR
-            </div>
-          </div>
-        )}
-        {plan.isPopular && (
-          <Badge className="self-start mb-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-none">
-            Recommended
-          </Badge>
-        )}
-        {isCurrentPlan && (
-          <Badge className="self-start mb-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white border-none">
-            Your Plan
-          </Badge>
-        )}
-        <CardTitle className="text-2xl text-purple-800">{plan.name}</CardTitle>
-        <CardDescription className="text-sm text-purple-600">{plan.description}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1">
-        <div className="mb-4">
-          <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">${plan.price}</span>
-          <span className="text-gray-500 ml-2">
-            for {plan.duration} {plan.duration === 1 ? 'month' : 'months'}
-          </span>
-        </div>
-        <ul className="space-y-2">
-          {plan.features.map((feature, index) => (
-            <li key={index} className="flex items-center gap-2">
-              <Check className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-              <span className="text-gray-700">{feature}</span>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-      <CardFooter className="pt-4 flex flex-col gap-2">
-        {isCurrentPlan ? (
-          <Button 
-            className="w-full border-emerald-500 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
-            variant="outline"
-            disabled
-          >
-            Current Plan
-          </Button>
-        ) : loading ? (
-          <Button 
-            className="w-full"
-            disabled
-          >
-            Processing...
-          </Button>
-        ) : (
-          <>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  className={cn(
-                    "w-full",
-                    plan.isPopular && "bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white",
-                    !plan.isPopular && "border-purple-500 text-purple-700 bg-white hover:bg-purple-50"
-                  )}
-                  variant={plan.isPopular ? "default" : "outline"}
-                >
-                  Subscribe Now
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" className="w-48">
-                <DropdownMenuItem 
-                  onClick={() => onSubscribe(plan.id, 'stripe')}
-                  className="cursor-pointer"
-                >
-                  <CreditCard className="mr-2 h-4 w-4" /> Pay with Card
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => onSubscribe(plan.id, 'paypal')} 
-                  className="cursor-pointer"
-                >
-                  <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19.5 9.5H18C16.3431 9.5 15 10.8431 15 12.5V15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M4 10.5H7.5C8.32843 10.5 9 9.82843 9 9V7.5C9 6.67157 8.32843 6 8 6.67157 8 7.5V18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M13 7.5V18M13 7.5C13 6.67157 12.3284 6 11.5 6H9.5C8.67157 6 8 6.67157 8 7.5V9C8 9.82843 8.67157 10.5 9.5 10.5H11.5C12.3284 10.5 13 9.82843 13 9V7.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M20 13.5V15C20 15.8284 19.3284 16.5 18.5 16.5H16.5C15.6716 16.5 15 15.8284 15 15V13.5C15 12.6716 15.6716 12 16.5 12H18.5C19.3284 12 20 12.6716 20 13.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Pay with PayPal
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <p className="text-center text-xs text-gray-500">Secure payment processing</p>
-          </>
-        )}
-      </CardFooter>
-    </Card>
-  );
+interface Transaction {
+  id: string;
+  amount: number;
+  payment_method: string;
+  created_at: string;
+  status: string;
+}
+
+// Format date helper function
+const formatDate = (dateString: string) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  }).format(date);
 };
 
-const MembershipPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [planIdLoading, setPlanIdLoading] = useState<string | null>(null);
+const MembershipPage = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedPlanId, setSelectedPlanId] = useState<string>('monthly');
+  const [user, setUser] = useState<any>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   
   useEffect(() => {
-    const success = searchParams.get('success');
-    const canceled = searchParams.get('canceled');
-    const provider = searchParams.get('provider') || 'payment service';
-    
-    if (success === 'true') {
-      toast({
-        title: "Subscription Successful",
-        description: `Your subscription with ${provider} has been processed successfully.`,
-        variant: "default"
-      });
-      
-      // Update the local user subscription status
-      const updateLocalSubscription = async () => {
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user) {
-          // Refresh the profile data to get the updated subscription status
-          fetchProfile();
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Check if user is authenticated
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          toast({
+            title: "Authentication required",
+            description: "Please log in to view membership information",
+            variant: "destructive",
+          });
+          navigate('/login');
+          return;
         }
-      };
-      
-      updateLocalSubscription();
-    } else if (canceled === 'true') {
-      toast({
-        title: "Subscription Canceled",
-        description: `Your ${provider} subscription process was canceled.`,
-        variant: "destructive"
-      });
-    }
-  }, [searchParams]);
-  
-  const fetchProfile = async () => {
-    try {
-      // Get current user
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData.user;
-      if (!user) {
-        return;
-      }
-      
-      // Get user profile with subscription info
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          id
-        `)
-        .eq('id', user.id)
-        .maybeSingle();
-      
-      if (error) {
-        console.error("Error fetching profile", error);
-        return;
-      }
-      
-      // Get subscription info
-      const { data: subData, error: subError } = await supabase
-        .from('user_subscriptions')
-        .select('plan')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle();
         
-      if (subError) {
-        console.error("Error fetching subscription", subError);
+        setUser({
+          id: session.user.id,
+          email: session.user.email
+        });
+        
+        // Fetch plans
+        const { data: plansData, error: plansError } = await supabase
+          .from('plans')
+          .select('*')
+          .order('price', { ascending: true });
+          
+        if (plansError) {
+          console.error("Error fetching plans:", plansError);
+          toast({
+            title: "Error",
+            description: "Unable to load membership plans",
+            variant: "destructive",
+          });
+        } else {
+          // Parse features from JSON if needed
+          const parsedPlans = plansData.map((plan: any) => ({
+            ...plan,
+            features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
+          }));
+          setPlans(parsedPlans);
+        }
+        
+        // Fetch user's subscription
+        const { data: subscriptionData, error: subscriptionError } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+          
+        if (subscriptionError) {
+          console.error("Error fetching subscription:", subscriptionError);
+        } else if (subscriptionData) {
+          setSubscription(subscriptionData);
+          
+          // Fetch transaction history
+          const { data: transactionsData, error: transactionsError } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .order('created_at', { ascending: false });
+            
+          if (transactionsError) {
+            console.error("Error fetching transactions:", transactionsError);
+          } else {
+            setTransactions(transactionsData);
+          }
+        }
+      } catch (error) {
+        console.error("Error in membership page:", error);
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
-      
-      if (data) {
-        setProfile({
-          id: data.id.toString(),
-          subscription: subData ? {
-            plan: subData.plan
-          } : undefined
+    };
+    
+    fetchData();
+  }, [navigate]);
+  
+  const handleCancelSubscription = async () => {
+    if (!user || !subscription) return;
+    
+    setCancelLoading(true);
+    try {
+      const { error } = await supabase
+        .from('subscriptions')
+        .update({ 
+          cancel_at_period_end: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', subscription.id);
+        
+      if (error) {
+        console.error("Error canceling subscription:", error);
+        toast({
+          title: "Error",
+          description: "Unable to cancel subscription. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        // Update local state
+        setSubscription({
+          ...subscription,
+          cancel_at_period_end: true
+        });
+        
+        toast({
+          title: "Subscription updated",
+          description: "Your subscription will be canceled at the end of the billing period",
+        });
+        
+        setShowCancelConfirm(false);
+      }
+    } catch (error) {
+      console.error("Exception during cancellation:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+  
+  const handleReactivateSubscription = async () => {
+    if (!user || !subscription) return;
+    
+    setCancelLoading(true);
+    try {
+      const { error } = await supabase
+        .from('subscriptions')
+        .update({ 
+          cancel_at_period_end: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', subscription.id);
+        
+      if (error) {
+        console.error("Error reactivating subscription:", error);
+        toast({
+          title: "Error",
+          description: "Unable to reactivate subscription. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        // Update local state
+        setSubscription({
+          ...subscription,
+          cancel_at_period_end: false
+        });
+        
+        toast({
+          title: "Subscription reactivated",
+          description: "Your subscription will continue after the current billing period",
         });
       }
     } catch (error) {
-      console.error("Error in fetchProfile:", error);
+      console.error("Exception during reactivation:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setCancelLoading(false);
     }
   };
   
-  useEffect(() => {
-    fetchProfile();
-  }, [searchParams]);
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData?.session) {
-        navigate('/login');
-      }
-    };
-    checkSession();
-  }, [navigate]);
-
-  const handleSubscribe = async (planId: string, paymentMethod: string) => {
-    setPlanIdLoading(planId);
-    setIsLoading(true);
-    
-    try {
-      if (paymentMethod === 'paypal') {
-        setSelectedPlanId(planId);
-      } else if (paymentMethod === 'stripe') {
-        toast({
-          title: "Stripe Integration",
-          description: "Stripe payment is not configured in this version. Please use PayPal instead.",
-          variant: "destructive"
-        });
-      }
-    } catch (error: any) {
-      console.error("Subscription error:", error);
-      toast({
-        title: "Subscription Error",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-      setPlanIdLoading(null);
-    }
-  };
-
-  return (
-    <>
-      <div className="container py-12">
-        <MembershipStatusBar />
-        
-        <h1 className="text-3xl font-bold mb-8 text-center">Choose Your Membership Plan</h1>
-        
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {membershipPlans.map((plan) => (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              onSubscribe={handleSubscribe}
-              isCurrentPlan={profile?.subscription?.plan === plan.id}
-              loading={planIdLoading === plan.id && loading}
-            />
-          ))}
-        </div>
-        
-        <div className="mt-12 max-w-md mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Complete Your Subscription</CardTitle>
-              <CardDescription>
-                Make a secure payment with PayPal to start your subscription
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center mb-4">
-                <p className="text-lg font-semibold">
-                  Selected Plan: {membershipPlans.find(p => p.id === selectedPlanId)?.name || "Monthly Plan"}
-                </p>
-                <p className="text-sm text-gray-500">
-                  ${membershipPlans.find(p => p.id === selectedPlanId)?.price || "11.99"} for {membershipPlans.find(p => p.id === selectedPlanId)?.duration || 1} {membershipPlans.find(p => p.id === selectedPlanId)?.duration === 1 ? 'month' : 'months'}
-                </p>
-              </div>
-              <PayPalCheckoutButton 
-                planId={selectedPlanId} 
-                className="w-full py-2"
-                isLoading={isLoading}
-                setIsLoading={setIsLoading}
-              />
-              <p className="text-xs text-center mt-2 text-gray-500">
-                You will be redirected to PayPal to complete your payment securely.
-              </p>
-            </CardContent>
-          </Card>
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <p>Loading membership information...</p>
         </div>
       </div>
-    </>
+    );
+  }
+  
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6">Membership</h1>
+      
+      {user ? (
+        <Tabs defaultValue="subscription" className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="subscription">Subscription</TabsTrigger>
+            <TabsTrigger value="plans">Plans</TabsTrigger>
+            {subscription && <TabsTrigger value="history">Payment History</TabsTrigger>}
+          </TabsList>
+          
+          <TabsContent value="subscription">
+            {subscription ? (
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Current Membership</CardTitle>
+                      <CardDescription>Your subscription details</CardDescription>
+                    </div>
+                    <Badge className={
+                      subscription.status === 'active' 
+                        ? 'bg-green-500' 
+                        : subscription.status === 'trialing' 
+                          ? 'bg-blue-500' 
+                          : 'bg-gray-500'
+                    }>
+                      {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Plan</p>
+                        <p className="font-medium">{subscription.plan}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Started</p>
+                        <p className="font-medium">{formatDate(subscription.created_at)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Current Period Ends</p>
+                        <p className="font-medium">{formatDate(subscription.period_end)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Renewal Status</p>
+                        <p className="font-medium">
+                          {subscription.cancel_at_period_end 
+                            ? "Will not renew" 
+                            : "Will automatically renew"}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {subscription.cancel_at_period_end && (
+                      <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-md">
+                        <p className="text-amber-800">
+                          Your membership is set to end on {formatDate(subscription.period_end)}. 
+                          You'll lose access to premium features after this date.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end space-x-2">
+                  {subscription.cancel_at_period_end ? (
+                    <Button
+                      onClick={handleReactivateSubscription}
+                      disabled={cancelLoading}
+                    >
+                      {cancelLoading ? "Processing..." : "Reactivate Subscription"}
+                    </Button>
+                  ) : (
+                    <>
+                      {showCancelConfirm ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowCancelConfirm(false)}
+                            disabled={cancelLoading}
+                          >
+                            Keep Subscription
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={handleCancelSubscription}
+                            disabled={cancelLoading}
+                          >
+                            {cancelLoading ? "Processing..." : "Confirm Cancellation"}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowCancelConfirm(true)}
+                          disabled={cancelLoading}
+                        >
+                          Cancel Subscription
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </CardFooter>
+              </Card>
+            ) : (
+              <div className="text-center py-8">
+                <h2 className="text-2xl font-semibold mb-4">No Active Membership</h2>
+                <p className="mb-6">You don't have an active membership plan. Check out our available plans to get started.</p>
+                <Button onClick={() => document.querySelector('[data-value="plans"]')?.click()}>
+                  View Membership Plans
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="plans">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {plans.map((plan) => (
+                <Card key={plan.id} className={`relative ${plan.popular ? 'border-indigo-400 shadow-md' : ''}`}>
+                  {plan.popular && (
+                    <div className="absolute top-0 right-0 transform translate-x-2 -translate-y-2">
+                      <Badge className="bg-indigo-500">Most Popular</Badge>
+                    </div>
+                  )}
+                  <CardHeader>
+                    <CardTitle>{plan.name}</CardTitle>
+                    <CardDescription>{plan.description}</CardDescription>
+                    <div className="mt-2">
+                      <span className="text-3xl font-bold">${plan.price}</span>
+                      <span className="text-gray-500">/{plan.billing_cycle}</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {plan.features.map((feature, index) => (
+                        <li key={index} className="flex items-start">
+                          <svg className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                  <CardFooter>
+                    {subscription?.plan === plan.name ? (
+                      <Button className="w-full" disabled>Current Plan</Button>
+                    ) : (
+                      <PayPalCheckoutButton 
+                        planId={plan.id} 
+                        amount={Number(plan.price)} 
+                        planName={plan.name} 
+                        userId={user?.id} 
+                      />
+                    )}
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+          
+          {subscription && (
+            <TabsContent value="history">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Payment History</CardTitle>
+                  <CardDescription>Your recent transactions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {transactions.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="py-2 px-4 text-left">Date</th>
+                            <th className="py-2 px-4 text-left">Amount</th>
+                            <th className="py-2 px-4 text-left">Payment Method</th>
+                            <th className="py-2 px-4 text-left">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {transactions.map((transaction) => (
+                            <tr key={transaction.id} className="border-b hover:bg-gray-50">
+                              <td className="py-3 px-4">{formatDate(transaction.created_at)}</td>
+                              <td className="py-3 px-4">${transaction.amount.toFixed(2)}</td>
+                              <td className="py-3 px-4">{transaction.payment_method}</td>
+                              <td className="py-3 px-4">
+                                <Badge className={
+                                  transaction.status === 'completed' 
+                                    ? 'bg-green-500' 
+                                    : transaction.status === 'pending' 
+                                      ? 'bg-amber-500' 
+                                      : 'bg-red-500'
+                                }>
+                                  {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-center py-4">No transaction history available.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+        </Tabs>
+      ) : (
+        <MembershipRequired />
+      )}
+    </div>
   );
 };
 
