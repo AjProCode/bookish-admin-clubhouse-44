@@ -1,78 +1,89 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminHeader from '@/components/admin/AdminHeader';
-import { cn } from '@/lib/utils';
-import { toast } from '@/hooks/use-toast';
+import AdminSidebar from '../components/admin/AdminSidebar';
+import AdminHeader from '../components/admin/AdminHeader';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+
+interface UserData {
+  id: string;
+  email?: string;
+}
 
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkAdmin = async () => {
+    // Check if user is logged in and is an admin
+    const checkUser = async () => {
       try {
-        // Check if user is authenticated
         const { data: sessionData } = await supabase.auth.getSession();
-        const session = sessionData.session;
-
+        const session = sessionData?.session;
+        
         if (!session) {
           toast({
-            title: "Authentication Required",
-            description: "Please sign in to access the admin panel",
-            variant: "destructive"
+            title: "Authentication required",
+            description: "You need to be logged in to access the admin area",
+            variant: "destructive",
           });
           navigate('/login');
           return;
         }
-
+        
+        setUser({
+          id: session.user.id,
+          email: session.user.email
+        });
+        
         // Check if user has admin role
-        const { data: profileData, error: profileError } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
         
-        console.log("Admin check result:", { profileData, profileError });
-        
-        if (profileError) {
-          console.error("Error checking admin status:", profileError);
+        if (error) {
+          console.error("Error checking admin status:", error);
           toast({
             title: "Error",
-            description: "Failed to fetch user profile",
-            variant: "destructive"
+            description: "Could not verify your permissions",
+            variant: "destructive",
           });
-          navigate('/login');
+          navigate('/');
           return;
         }
-
-        if (profileData?.role !== 'admin') {
+        
+        if (data?.role !== 'admin') {
           toast({
-            title: "Unauthorized",
-            description: "You do not have permission to access this page",
-            variant: "destructive"
+            title: "Access denied",
+            description: "You don't have permission to access the admin area",
+            variant: "destructive",
           });
-          navigate('/login');
+          navigate('/');
           return;
         }
+        
+        setIsAdmin(true);
+        setIsLoading(false);
+        
       } catch (error) {
-        console.error("Error checking admin status:", error);
+        console.error("Error in admin layout:", error);
         toast({
           title: "Error",
           description: "An unexpected error occurred",
-          variant: "destructive"
+          variant: "destructive",
         });
-        navigate('/login');
-      } finally {
-        setLoading(false);
+        navigate('/');
       }
     };
-
-    checkAdmin();
+    
+    checkUser();
   }, [navigate]);
-
-  if (loading) {
+  
+  if (isLoading) {
     return <div>Loading...</div>;
   }
 

@@ -14,10 +14,15 @@ import { Menu, User, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+interface UserData {
+  id: string;
+  email?: string;
+}
+
 const Navbar: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserData | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   
   useEffect(() => {
@@ -26,7 +31,10 @@ const Navbar: React.FC = () => {
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData.session;
       if (session) {
-        setUser(session.user);
+        setUser({
+          id: session.user.id,
+          email: session.user.email
+        });
         
         // Check if user has admin role
         const { data, error } = await supabase
@@ -48,7 +56,10 @@ const Navbar: React.FC = () => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth event:", event);
       if (event === 'SIGNED_IN' && session) {
-        setUser(session.user);
+        setUser({
+          id: session.user.id,
+          email: session.user.email
+        });
         // Check for admin role when signing in
         const { data, error } = await supabase
           .from('profiles')

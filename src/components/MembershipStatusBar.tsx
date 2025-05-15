@@ -64,7 +64,7 @@ const MembershipStatusBar: React.FC = () => {
         
         if (profileData) {
           setProfile({
-            id: profileData.id.toString(), // Convert to string
+            id: profileData.id.toString(),
             email: profileData.email || user.email,
             first_name: profileData.first_name || "",
             last_name: profileData.last_name || "",
@@ -72,7 +72,7 @@ const MembershipStatusBar: React.FC = () => {
               status: subscriptionData.status || "",
               plan: subscriptionData.plan || "",
               end_date: subscriptionData.end_date || "",
-              next_delivery_date: subscriptionData.next_delivery_date
+              next_delivery_date: subscriptionData.next_delivery_date || undefined
             } : undefined
           });
         }

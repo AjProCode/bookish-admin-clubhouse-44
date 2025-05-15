@@ -1,186 +1,105 @@
-
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from '@/hooks/use-toast';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { toast } from '@/hooks/use-toast';
+
+interface UserState {
+  id: string;
+  email?: string;
+}
 
 const LoginPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [registerEmail, setRegisterEmail] = useState('');
-  const [registerPassword, setRegisterPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
-  const [registrationError, setRegistrationError] = useState('');
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Predefined credentials for admin and dummy users
-  const adminCredentials = {
-    email: 'admin@example.com',
-    password: 'adminPassword',
-    role: 'admin', // Add role property
-  };
-
-  const dummyCredentials = {
-    email: 'dummy@example.com',
-    password: 'dummyPassword',
-    role: 'dummy', // Add role property
-  };
-
+  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<UserState | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  
   useEffect(() => {
     // Check if user is already logged in
-    const checkSession = async () => {
+    const checkUser = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session) {
-        // Redirect to bookshelf if already logged in
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', sessionData.session.user.id)
-          .maybeSingle();
-        
-        if (profileError) {
-          console.error('Error fetching profile:', profileError);
-          return;
-        }
-
-        if (profileData?.role === 'admin') {
-          navigate('/admin');
-        } else {
-          navigate('/bookshelf');
-        }
+      const session = sessionData.session;
+      
+      if (session) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email
+        });
+        const from = location.state?.from?.pathname || '/';
+        navigate(from);
       }
     };
-
-    checkSession();
-  }, [navigate]);
-
-  const handleLogin = async () => {
-    setIsSubmitting(true);
-    setLoginError('');
-
-    // Check against predefined admin credentials
-    if (loginEmail === adminCredentials.email && loginPassword === adminCredentials.password) {
-      try {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: loginEmail,
-          password: loginPassword,
+    
+    checkUser();
+    
+    // Listen for auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email
         });
-
-        if (authError) {
-          console.error('Supabase sign-in error:', authError);
-          setLoginError('Failed to sign in with Supabase.');
-          setIsSubmitting(false);
-          return;
-        }
-
-        // If sign-in is successful, navigate to admin
-        toast({
-          title: 'Login successful',
-          description: 'Logged in as admin.',
-        });
-        navigate('/admin');
-        setIsSubmitting(false);
-        return;
-      } catch (error) {
-        console.error('Login error:', error);
-        setLoginError('An unexpected error occurred.');
-        setIsSubmitting(false);
-        return;
+        const from = location.state?.from?.pathname || '/';
+        navigate(from);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
       }
-    }
-
-    // Check against predefined dummy credentials
-    if (loginEmail === dummyCredentials.email && loginPassword === dummyCredentials.password) {
-      try {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: loginEmail,
-          password: loginPassword,
-        });
-
-        if (authError) {
-          console.error('Supabase sign-in error:', authError);
-          setLoginError('Failed to sign in with Supabase.');
-          setIsSubmitting(false);
-          return;
-        }
-
-        // If sign-in is successful, navigate to dummy user page
-        toast({
-          title: 'Login successful',
-          description: 'Logged in as dummy user.',
-        });
-        navigate('/bookshelf'); // Or wherever dummy users should go
-        setIsSubmitting(false);
-        return;
-      } catch (error) {
-        console.error('Login error:', error);
-        setLoginError('An unexpected error occurred.');
-        setIsSubmitting(false);
-        return;
-      }
-    }
-
-    // Regular Supabase login
+    });
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [navigate, location]);
+  
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: loginPassword,
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
       });
-
-      if (authError) {
-        console.error('Supabase sign-in error:', authError);
-        setLoginError('Invalid credentials.');
-        setIsSubmitting(false);
-        return;
+      if (error) {
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Login successful",
+          description: "You have been successfully logged in.",
+        });
+        const from = location.state?.from?.pathname || '/';
+        navigate(from);
       }
-
-      // If sign-in is successful, navigate to bookshelf
+    } catch (error: any) {
       toast({
-        title: 'Login successful',
-        description: 'Logged in successfully.',
+        title: "Login failed",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive"
       });
-      navigate('/bookshelf');
-      setIsSubmitting(false);
-    } catch (error) {
-      console.error('Login error:', error);
-      setLoginError('An unexpected error occurred.');
-      setIsSubmitting(false);
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const handleRegister = async () => {
-    setIsSubmitting(true);
-    setRegistrationError('');
-
-    if (registerPassword !== confirmPassword) {
-      setRegistrationError('Passwords do not match.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!agreeToTerms) {
-      setRegistrationError('Please agree to the terms and conditions.');
-      setIsSubmitting(false);
-      return;
-    }
-
+  
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
     try {
-      const { data, error: authError } = await supabase.auth.signUp({
-        email: registerEmail,
-        password: registerPassword,
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
         options: {
           data: {
             first_name: firstName,
@@ -188,110 +107,112 @@ const LoginPage: React.FC = () => {
           },
         },
       });
-
-      if (authError) {
-        console.error('Supabase sign-up error:', authError);
-        setRegistrationError(authError.message || 'Failed to sign up.');
-        setIsSubmitting(false);
-        return;
-      }
-      
-      if (data?.user) {
-        console.log("Registration successful:", data.user);
-        
-        // Create a profile record for the user - using the create_profile function
-        const { error: profileError } = await supabase.rpc('create_profile', {
-          user_id: data.user.id,
-          user_email: registerEmail,
-          user_first_name: firstName, 
-          user_last_name: lastName
-        });
-        
-        if (profileError) {
-          console.error("Error creating profile:", profileError);
-        }
-        
+      if (error) {
         toast({
-          title: "Registration successful",
-          description: "Your account has been created. Please check your email for verification link.",
+          title: "Signup failed",
+          description: error.message,
+          variant: "destructive"
         });
-        
-        navigate('/membership');
+      } else {
+        toast({
+          title: "Signup successful",
+          description: "Please check your email to verify your account.",
+        });
+        console.log("Signup data:", data);
       }
     } catch (error: any) {
-      console.error("Exception during registration:", error);
-      setRegistrationError(error.message || 'An error occurred during registration');
-      setIsSubmitting(false);
+      toast({
+        title: "Signup failed",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="container py-12">
-      <Card>
-        <CardHeader>
-          <CardTitle>Authentication</CardTitle>
-          <CardDescription>Login or create a new account</CardDescription>
+    <div className="container flex items-center justify-center min-h-screen">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl text-center">Authentication</CardTitle>
+          <CardDescription className="text-center">Sign in or create an account</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login" className="space-y-4">
-            <TabsList>
+        <CardContent className="grid gap-4">
+          <Tabs defaultvalue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
-            <TabsContent value="login">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" placeholder="m@example.com" type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
-                </div>
-                {loginError && (
-                  <p className="text-red-500">{loginError}</p>
-                )}
-                <Button onClick={handleLogin} disabled={isSubmitting}>
-                  {isSubmitting ? "Logging in..." : "Login"}
-                </Button>
-                <p className="text-sm text-muted-foreground">
-                  Don't have an account? <Link to="/register">Register</Link>
-                </p>
+            <TabsContent value="login" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input 
+                  id="email" 
+                  placeholder="m@example.com" 
+                  type="email" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <CardFooter>
+                <Button className="w-full" onClick={handleLogin} disabled={isLoading}>
+                  {isLoading ? "Logging in..." : "Login"}
+                </Button>
+              </CardFooter>
             </TabsContent>
-            <TabsContent value="register">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="registerEmail">Email</Label>
-                  <Input id="registerEmail" placeholder="m@example.com" type="email" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="registerPassword">Password</Label>
-                  <Input id="registerPassword" type="password" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="terms" checked={agreeToTerms} onCheckedChange={(checked) => setAgreeToTerms(checked === true)} />
-                  <Label htmlFor="terms">Agree to terms and conditions</Label>
-                </div>
-                {registrationError && (
-                  <p className="text-red-500">{registrationError}</p>
-                )}
-                <Button onClick={handleRegister} disabled={isSubmitting}>
-                  {isSubmitting ? "Registering..." : "Register"}
-                </Button>
+            <TabsContent value="signup" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input 
+                  id="email" 
+                  placeholder="m@example.com" 
+                  type="email" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  placeholder="John"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  placeholder="Doe"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+              </div>
+              <CardFooter>
+                <Button className="w-full" onClick={handleSignup} disabled={isLoading}>
+                  {isLoading ? "Signing up..." : "Sign Up"}
+                </Button>
+              </CardFooter>
             </TabsContent>
           </Tabs>
         </CardContent>
