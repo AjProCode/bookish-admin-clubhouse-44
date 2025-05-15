@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -361,7 +362,6 @@ const MembershipPage: React.FC = () => {
 
   return (
     <>
-      <Navbar />
       <div className="container py-12">
         <MembershipStatusBar />
         
@@ -409,7 +409,6 @@ const MembershipPage: React.FC = () => {
           </Card>
         </div>
       </div>
-      <Footer />
     </>
   );
 };

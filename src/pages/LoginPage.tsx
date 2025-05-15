@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -139,7 +140,7 @@ const LoginPage: React.FC = () => {
           <CardDescription className="text-center">Sign in or create an account</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <Tabs defaultvalue="login" className="w-full">
+          <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
