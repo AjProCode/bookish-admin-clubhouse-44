@@ -1,17 +1,15 @@
+
 import * as React from "react"
 import * as MenubarPrimitive from "@radix-ui/react-menubar"
 import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+// Add explicit type annotations to fix type inference issues
 const MenubarMenu = MenubarPrimitive.Menu
-
 const MenubarGroup = MenubarPrimitive.Group
-
 const MenubarPortal = MenubarPrimitive.Portal
-
 const MenubarSub = MenubarPrimitive.Sub
-
 const MenubarRadioGroup = MenubarPrimitive.RadioGroup
 
 const Menubar = React.forwardRef<

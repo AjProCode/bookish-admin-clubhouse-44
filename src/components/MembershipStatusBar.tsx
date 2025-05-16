@@ -18,8 +18,11 @@ const MembershipStatusBar: React.FC<MembershipStatusBarProps> = ({
       // Handle case where daysRemaining or totalDays are 0
       if (totalDays <= 0) return 0;
       
+      // Ensure daysRemaining is a number
+      const days = typeof daysRemaining === 'string' ? parseInt(daysRemaining, 10) : daysRemaining;
+      
       // Calculate percentage of days remaining
-      const percentage = (daysRemaining / totalDays) * 100;
+      const percentage = (days / totalDays) * 100;
       
       // Clamp percentage between 0 and 100
       return Math.max(0, Math.min(100, percentage));
@@ -30,9 +33,12 @@ const MembershipStatusBar: React.FC<MembershipStatusBarProps> = ({
   }, [daysRemaining, totalDays]);
   
   const formatDaysText = () => {
-    if (daysRemaining <= 0) return "Expired";
-    if (daysRemaining === 1) return "1 day remaining";
-    return `${daysRemaining} days remaining`;
+    // Ensure daysRemaining is a number
+    const days = typeof daysRemaining === 'string' ? parseInt(daysRemaining, 10) : daysRemaining;
+    
+    if (days <= 0) return "Expired";
+    if (days === 1) return "1 day remaining";
+    return `${days} days remaining`;
   };
 
   return (
