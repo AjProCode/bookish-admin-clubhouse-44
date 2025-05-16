@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -72,7 +71,7 @@ const MembershipStatusBar: React.FC = () => {
             status: subscriptionData.status || "",
             plan: subscriptionData.plan || "",
             end_date: subscriptionData.end_date || "",
-            next_delivery_date: subscriptionData.next_delivery_date || null
+            next_delivery_date: subscriptionData.next_delivery_date
           } : undefined
         });
         

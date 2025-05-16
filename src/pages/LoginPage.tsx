@@ -24,10 +24,6 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Admin credentials from environment variables
-  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-  const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
-  
   useEffect(() => {
     // Check if user is already logged in
     const checkUser = async () => {
@@ -45,113 +41,23 @@ const LoginPage: React.FC = () => {
     };
     
     checkUser();
-    
-    // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email
-        });
-        const from = location.state?.from?.pathname || '/';
-        navigate(from);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-      }
-    });
-    
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
   }, [navigate, location]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Check if using admin credentials
-      const isAdminLogin = email === adminEmail && password === adminPassword;
-      
       const { error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
       });
       
       if (error) {
-        // Special handling for "Email not confirmed" error
-        if (error.message?.includes("Email not confirmed")) {
-          // If using admin credentials, try to bypass email confirmation
-          if (isAdminLogin) {
-            // For admin login, we'll automatically try to sign up again if needed
-            const { data: userData, error: signupError } = await supabase.auth.signUp({
-              email: adminEmail,
-              password: adminPassword,
-              options: {
-                data: {
-                  first_name: "Admin",
-                  last_name: "User",
-                }
-              }
-            });
-            
-            if (signupError) {
-              toast({
-                title: "Admin login failed",
-                description: signupError.message,
-                variant: "destructive"
-              });
-            } else {
-              // Try login again after signup
-              const { error: retryError } = await supabase.auth.signInWithPassword({
-                email: adminEmail,
-                password: adminPassword,
-              });
-              
-              if (!retryError) {
-                toast({
-                  title: "Admin login successful",
-                  description: "You have been successfully logged in as admin.",
-                });
-                const from = location.state?.from?.pathname || '/admin';
-                navigate(from);
-              } else {
-                toast({
-                  title: "Admin login failed",
-                  description: retryError.message,
-                  variant: "destructive"
-                });
-              }
-            }
-          } else {
-            // For regular users with unconfirmed emails, we'll try to auto-confirm
-            toast({
-              title: "Login with unconfirmed email",
-              description: "Attempting to verify your account automatically...",
-            });
-            
-            // Try login again after a brief pause
-            setTimeout(async () => {
-              const { error: retryError } = await supabase.auth.signInWithPassword({
-                email: email,
-                password: password,
-              });
-              
-              if (retryError) {
-                toast({
-                  title: "Login failed",
-                  description: "Please check your inbox for the verification email or try again later.",
-                  variant: "destructive"
-                });
-              }
-            }, 1500);
-          }
-        } else {
-          toast({
-            title: "Login failed",
-            description: error.message,
-            variant: "destructive"
-          });
-        }
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive"
+        });
       } else {
         toast({
           title: "Login successful",
@@ -186,6 +92,7 @@ const LoginPage: React.FC = () => {
           emailRedirectTo: window.location.origin + '/login',
         },
       });
+      
       if (error) {
         toast({
           title: "Signup failed",
@@ -193,7 +100,7 @@ const LoginPage: React.FC = () => {
           variant: "destructive"
         });
       } else {
-        // Attempt immediate login for better UX
+        // For demo simplicity, automatically log the user in
         await supabase.auth.signInWithPassword({
           email: email,
           password: password,
@@ -203,6 +110,8 @@ const LoginPage: React.FC = () => {
           title: "Signup successful",
           description: "You've been automatically logged in.",
         });
+        const from = location.state?.from?.pathname || '/';
+        navigate(from);
       }
     } catch (error: any) {
       toast({
@@ -248,7 +157,7 @@ const LoginPage: React.FC = () => {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              <CardFooter>
+              <CardFooter className="px-0">
                 <Button className="w-full" onClick={handleLogin} disabled={isLoading}>
                   {isLoading ? "Logging in..." : "Login"}
                 </Button>
@@ -292,7 +201,7 @@ const LoginPage: React.FC = () => {
                   onChange={(e) => setLastName(e.target.value)}
                 />
               </div>
-              <CardFooter>
+              <CardFooter className="px-0">
                 <Button className="w-full" onClick={handleSignup} disabled={isLoading}>
                   {isLoading ? "Signing up..." : "Sign Up"}
                 </Button>

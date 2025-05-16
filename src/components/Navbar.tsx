@@ -36,16 +36,10 @@ const Navbar: React.FC = () => {
           email: session.user.email
         });
         
-        // Check if user has admin role
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        
-        if (!error && data?.role === 'admin') {
+        // Check if user email matches admin email
+        if (session.user.email === import.meta.env.VITE_ADMIN_EMAIL) {
           setIsAdmin(true);
-          console.log("Admin role detected for user:", session.user.email);
+          console.log("Admin detected with matching email:", session.user.email);
         }
       }
     };
@@ -60,16 +54,11 @@ const Navbar: React.FC = () => {
           id: session.user.id,
           email: session.user.email
         });
-        // Check for admin role when signing in
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .maybeSingle();
         
-        if (!error && data?.role === 'admin') {
+        // Check for admin email when signing in
+        if (session.user.email === import.meta.env.VITE_ADMIN_EMAIL) {
           setIsAdmin(true);
-          console.log("Admin role detected for user:", session.user.email);
+          console.log("Admin detected with matching email:", session.user.email);
         } else {
           setIsAdmin(false);
         }

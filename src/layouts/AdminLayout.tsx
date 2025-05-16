@@ -4,6 +4,9 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/admin/AdminSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface UserData {
   id: string;
@@ -15,12 +18,15 @@ const AdminLayout: React.FC = () => {
   const [user, setUser] = useState<UserData | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [password, setPassword] = useState('');
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   
   // Admin credentials from environment variables
   const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+  const adminPassword = 'admin@skillbag123';
 
   useEffect(() => {
-    // Check if user is logged in and is an admin
+    // Check if user is logged in
     const checkUser = async () => {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
@@ -41,33 +47,14 @@ const AdminLayout: React.FC = () => {
           email: session.user.email
         });
         
-        // For demo purposes, auto-grant admin access to the admin email
+        // For demo purposes, check if email matches admin email
         if (session.user.email === adminEmail) {
-          console.log("Admin access granted via email match");
-          setIsAdmin(true);
+          console.log("Admin email detected");
+          setShowPasswordPrompt(true);
           setIsLoading(false);
           return;
-        }
-        
-        // Check if user has admin role
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        
-        if (error) {
-          console.error("Error checking admin status:", error);
-          toast({
-            title: "Error",
-            description: "Could not verify your permissions",
-            variant: "destructive",
-          });
-          navigate('/');
-          return;
-        }
-        
-        if (data?.role !== 'admin') {
+        } else {
+          // Redirect non-admin users
           toast({
             title: "Access denied",
             description: "You don't have permission to access the admin area",
@@ -76,10 +63,6 @@ const AdminLayout: React.FC = () => {
           navigate('/');
           return;
         }
-        
-        setIsAdmin(true);
-        setIsLoading(false);
-        
       } catch (error) {
         console.error("Error in admin layout:", error);
         toast({
@@ -94,8 +77,51 @@ const AdminLayout: React.FC = () => {
     checkUser();
   }, [navigate, adminEmail]);
   
+  const handlePasswordVerification = () => {
+    if (password === adminPassword) {
+      setIsAdmin(true);
+      setShowPasswordPrompt(false);
+      toast({
+        title: "Admin access granted",
+        description: "Welcome to the admin area",
+      });
+    } else {
+      toast({
+        title: "Incorrect password",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  }
+  
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  if (showPasswordPrompt) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Admin Authentication</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-gray-600">Please enter the admin password to continue.</p>
+            <Input
+              type="password"
+              placeholder="Admin password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mb-4"
+              onKeyPress={(e) => e.key === 'Enter' && handlePasswordVerification()}
+            />
+            <div className="flex justify-end">
+              <Button onClick={handlePasswordVerification}>Verify</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
