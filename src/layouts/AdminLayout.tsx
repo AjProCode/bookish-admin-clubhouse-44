@@ -4,9 +4,6 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/admin/AdminSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface UserData {
   id: string;
@@ -16,14 +13,8 @@ interface UserData {
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<UserData | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [password, setPassword] = useState('');
-  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   
-  // Simple admin password - should be replaced with proper role-based auth in production
-  const adminPassword = 'admin123';
-
   useEffect(() => {
     // Check if user is logged in
     const checkUser = async () => {
@@ -46,9 +37,12 @@ const AdminLayout: React.FC = () => {
           email: session.user.email
         });
         
-        // Show password prompt for all logged in users trying to access admin
-        setShowPasswordPrompt(true);
         setIsLoading(false);
+        
+        toast({
+          title: "Admin access granted",
+          description: "Welcome to the admin area",
+        });
       } catch (error) {
         console.error("Error in admin layout:", error);
         toast({
@@ -63,56 +57,8 @@ const AdminLayout: React.FC = () => {
     checkUser();
   }, [navigate]);
   
-  const handlePasswordVerification = () => {
-    if (password === adminPassword) {
-      setIsAdmin(true);
-      setShowPasswordPrompt(false);
-      toast({
-        title: "Admin access granted",
-        description: "Welcome to the admin area",
-      });
-    } else {
-      toast({
-        title: "Incorrect password",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-  
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-
-  if (showPasswordPrompt) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Admin Authentication</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-gray-600">Please enter the admin password to continue.</p>
-            <p className="text-xs text-gray-500">Use: admin123</p>
-            <Input
-              type="password"
-              placeholder="Admin password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mb-4"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handlePasswordVerification();
-                }
-              }}
-            />
-            <div className="flex justify-end">
-              <Button onClick={handlePasswordVerification}>Verify</Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
   }
 
   return (
