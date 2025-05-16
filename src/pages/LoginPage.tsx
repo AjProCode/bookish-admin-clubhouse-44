@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,46 +9,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 
-interface UserState {
-  id: string;
-  email?: string;
-}
-
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [user, setUser] = useState<UserState | null>(null);
-  const [alreadyCheckedSession, setAlreadyCheckedSession] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  
-  useEffect(() => {
-    // Check if user is already logged in
-    const checkUser = async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData.session;
-      
-      if (session && !alreadyCheckedSession) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email
-        });
-        setAlreadyCheckedSession(true);
-        
-        // Only navigate if the user actually loaded the login page directly
-        // This prevents infinite loops if called from other components
-        if (location.pathname === '/login') {
-          const from = location.state?.from?.pathname || '/';
-          navigate(from, { replace: true });
-        }
-      }
-    };
-    
-    checkUser();
-  }, [navigate, location, alreadyCheckedSession]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,8 +84,7 @@ const LoginPage: React.FC = () => {
           title: "Signup successful",
           description: "Your account has been created and you're now logged in.",
         });
-        const from = location.state?.from?.pathname || '/';
-        navigate(from);
+        navigate('/');
       }
     } catch (error: any) {
       toast({

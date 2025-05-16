@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Progress } from "@/components/ui/progress";
 
 interface MembershipStatusBarProps {
-  daysRemaining?: number;
+  daysRemaining?: number | string;
   totalDays?: number;
 }
 

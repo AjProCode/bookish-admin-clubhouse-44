@@ -31,8 +31,8 @@ const HeroSection: React.FC = () => {
               <div className="absolute top-5 right-5 w-4/5 h-full bg-bookclub-secondary rounded-lg shadow-lg transform -rotate-3"></div>
               <div className="absolute top-2 right-10 w-4/5 h-full bg-white rounded-lg shadow-lg overflow-hidden">
                 <img 
-                  src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158" 
-                  alt="Book lover reading" 
+                  src="https://images.unsplash.com/photo-1524578271613-d550eacf6090" 
+                  alt="Stack of books" 
                   className="w-full h-full object-cover"
                 />
               </div>

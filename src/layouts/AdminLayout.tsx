@@ -21,8 +21,8 @@ const AdminLayout: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   
-  // Admin password is hardcoded here
-  const adminPassword = 'admin@skillbag123';
+  // Simple admin password - should be replaced with proper role-based auth in production
+  const adminPassword = 'admin123';
 
   useEffect(() => {
     // Check if user is logged in
@@ -37,7 +37,7 @@ const AdminLayout: React.FC = () => {
             description: "You need to be logged in to access the admin area",
             variant: "destructive",
           });
-          navigate('/login');
+          navigate('/login', { state: { from: location }});
           return;
         }
         
@@ -93,7 +93,7 @@ const AdminLayout: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-gray-600">Please enter the admin password to continue.</p>
-            <p className="text-xs text-gray-500">Use: admin@skillbag123</p>
+            <p className="text-xs text-gray-500">Use: admin123</p>
             <Input
               type="password"
               placeholder="Admin password"
