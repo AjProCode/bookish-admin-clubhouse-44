@@ -1,4 +1,3 @@
-
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { DayPickerProvider } from "react-day-picker";
@@ -35,7 +34,7 @@ const queryClient = new QueryClient();
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
   <>
     <Navbar />
-    <main>{children}</main>
+    <main className="min-h-screen">{children}</main>
     <Footer />
   </>
 );
@@ -48,18 +47,16 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Routes>
-            {/* Public Routes - with Layout */}
+            {/* Public Routes */}
             <Route path="/" element={<AppLayout><Index /></AppLayout>} />
             <Route path="/books" element={<AppLayout><BooksPage /></AppLayout>} />
             <Route path="/bookshelf" element={<AppLayout><BookshelfPage /></AppLayout>} />
             <Route path="/reading-log" element={<AppLayout><ReadingLogPage /></AppLayout>} />
             <Route path="/book-review/:bookId" element={<AppLayout><BookReviewPage /></AppLayout>} />
             <Route path="/membership" element={<AppLayout><MembershipPage /></AppLayout>} />
-            
-            {/* Login page - no layout since we removed nav/footer from the component */}
             <Route path="/login" element={<AppLayout><LoginPage /></AppLayout>} />
 
-            {/* Admin Routes */}
+            {/* Admin Routes - No AppLayout wrapper */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="books" element={<AdminBooks />} />

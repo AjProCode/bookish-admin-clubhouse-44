@@ -1,28 +1,24 @@
-
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/admin/AdminSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-
-interface UserData {
-  id: string;
-  email?: string;
-}
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserData | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(true);
+  const [password, setPassword] = useState('');
   
   useEffect(() => {
-    // Check if user is logged in
     const checkUser = async () => {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
-        const session = sessionData?.session;
-        
-        if (!session) {
+        if (!sessionData?.session) {
           toast({
             title: "Authentication required",
             description: "You need to be logged in to access the admin area",
@@ -31,34 +27,81 @@ const AdminLayout: React.FC = () => {
           navigate('/login', { state: { from: location }});
           return;
         }
-        
-        setUser({
-          id: session.user.id,
-          email: session.user.email
-        });
-        
+
+        // Check if user is admin
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', sessionData.session.user.id)
+          .single();
+
+        if (profileData?.role !== 'admin') {
+          toast({
+            title: "Access denied",
+            description: "You don't have permission to access the admin area",
+            variant: "destructive",
+          });
+          navigate('/');
+          return;
+        }
+
+        setUser(sessionData.session.user);
         setIsLoading(false);
-        
-        toast({
-          title: "Admin access granted",
-          description: "Welcome to the admin area",
-        });
       } catch (error) {
         console.error("Error in admin layout:", error);
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred",
-          variant: "destructive",
-        });
         navigate('/');
       }
     };
     
     checkUser();
   }, [navigate]);
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === 'admin123') {
+      setShowPasswordDialog(false);
+    } else {
+      toast({
+        title: "Invalid password",
+        description: "Please enter the correct admin password",
+        variant: "destructive",
+      });
+    }
+  };
   
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  if (showPasswordDialog) {
+    return (
+      <Dialog open={showPasswordDialog} onOpenChange={() => navigate('/')}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Admin Authentication</DialogTitle>
+            <DialogDescription>
+              Please enter the admin password to continue
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handlePasswordSubmit} className="space-y-4 pt-4">
+            <Input
+              type="password"
+              placeholder="Enter admin password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => navigate('/')}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                Continue
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    );
   }
 
   return (
