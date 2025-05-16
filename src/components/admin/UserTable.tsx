@@ -26,6 +26,10 @@ export interface User {
   email: string;
   role: 'admin' | 'member';
   status: 'active' | 'inactive';
+  subscription?: {
+    plan: string;
+    status: string;
+  };
 }
 
 interface UserTableProps {
@@ -33,13 +37,15 @@ interface UserTableProps {
   onEdit: (id: string) => void;
   onViewDetails: (id: string) => void;
   onToggleStatus: (id: string) => void;
+  onManageSubscription?: (id: string) => void;
 }
 
 const UserTable: React.FC<UserTableProps> = ({ 
   users, 
   onEdit, 
   onViewDetails,
-  onToggleStatus 
+  onToggleStatus,
+  onManageSubscription
 }) => {
   return (
     <div className="border rounded-md overflow-hidden">
@@ -118,6 +124,12 @@ const UserTable: React.FC<UserTableProps> = ({
                         </>
                       )}
                     </DropdownMenuItem>
+                    {onManageSubscription && (
+                      <DropdownMenuItem onClick={() => onManageSubscription(user.id)}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Manage Subscription
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

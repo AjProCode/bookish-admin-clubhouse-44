@@ -15,6 +15,9 @@ import {
   UserBook, 
   ReadingStatus 
 } from '@/models/UserBook';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Sample user subscription data
 const sampleSubscriptions: UserSubscription[] = [
@@ -167,32 +170,17 @@ const initialUsers: UserDetails[] = [
 ];
 
 const AdminUsers: React.FC = () => {
-  // Check if a user is logged in (from localStorage)
-  React.useEffect(() => {
-    const checkAuth = () => {
-      const currentUser = localStorage.getItem('currentUser');
-      if (!currentUser) {
-        // If not logged in, redirect to login page
-        window.location.href = '/login';
-        return;
-      }
-      
-      // If logged in but not admin, redirect to home
-      const user = JSON.parse(currentUser);
-      if (user.role !== 'admin') {
-        window.location.href = '/';
-      }
-    };
-    
-    checkAuth();
-  }, []);
-  
   const [users, setUsers] = useState<UserDetails[]>(initialUsers);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isSubscriptionDialogOpen, setIsSubscriptionDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [subscriptionData, setSubscriptionData] = useState({
+    plan: '',
+    status: 'active'
+  });
   
   const handleAddUser = (userData: any) => {
     setIsLoading(true);
@@ -211,6 +199,20 @@ const AdminUsers: React.FC = () => {
         booksRead: 0,
         userBooks: []
       };
+      
+      // Add subscription if selected
+      if (userData.subscription) {
+        newUser.subscription = {
+          id: `subscription-${Date.now()}`,
+          userId: newUser.id,
+          plan: userData.subscription,
+          startDate: new Date().toISOString(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          isActive: true,
+          nextDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          booksDelivered: 0
+        };
+      }
       
       setUsers([newUser, ...users]);
       setIsAddDialogOpen(false);
@@ -236,6 +238,18 @@ const AdminUsers: React.FC = () => {
     if (user) {
       setCurrentUser(user);
       setIsDetailsDialogOpen(true);
+    }
+  };
+  
+  const handleManageSubscription = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setCurrentUser(user);
+      setSubscriptionData({
+        plan: user.subscription?.plan || '',
+        status: user.subscription?.isActive ? 'active' : 'inactive'
+      });
+      setIsSubscriptionDialogOpen(true);
     }
   };
   
@@ -283,20 +297,59 @@ const AdminUsers: React.FC = () => {
     });
   };
 
-  const handleUpdateSubscription = (userId: string, subscriptionData: UserSubscription) => {
-    const updatedUsers = users.map(user => 
-      user.id === userId ? { 
-        ...user, 
-        subscription: subscriptionData 
-      } : user
-    );
+  const handleUpdateSubscription = (userId: string) => {
+    setIsLoading(true);
     
-    setUsers(updatedUsers);
-    
-    toast({
-      title: "Subscription Updated",
-      description: `Subscription details have been updated.`,
-    });
+    setTimeout(() => {
+      const updatedUsers = users.map(user => {
+        if (user.id === userId) {
+          // If user had no subscription before, create one
+          if (!user.subscription && subscriptionData.plan) {
+            return {
+              ...user,
+              subscription: {
+                id: `subscription-${Date.now()}`,
+                userId: user.id,
+                plan: subscriptionData.plan,
+                startDate: new Date().toISOString(),
+                endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                isActive: subscriptionData.status === 'active',
+                nextDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                booksDelivered: 0
+              }
+            };
+          }
+          // If user has an existing subscription
+          else if (user.subscription) {
+            // If removing subscription
+            if (!subscriptionData.plan) {
+              const { subscription, ...userWithoutSubscription } = user;
+              return userWithoutSubscription;
+            }
+            // If updating subscription
+            return {
+              ...user,
+              subscription: {
+                ...user.subscription,
+                plan: subscriptionData.plan,
+                isActive: subscriptionData.status === 'active'
+              }
+            };
+          }
+        }
+        return user;
+      });
+      
+      setUsers(updatedUsers);
+      setIsLoading(false);
+      setIsSubscriptionDialogOpen(false);
+      setCurrentUser(null);
+      
+      toast({
+        title: "Subscription Updated",
+        description: `User's subscription has been updated.`,
+      });
+    }, 1000);
   };
   
   return (
@@ -314,7 +367,8 @@ const AdminUsers: React.FC = () => {
           users={users} 
           onEdit={handleEditUser}
           onViewDetails={handleViewUserDetails}
-          onToggleStatus={handleToggleUserStatus} 
+          onToggleStatus={handleToggleUserStatus}
+          onManageSubscription={handleManageSubscription}
         />
       </div>
       
@@ -329,6 +383,7 @@ const AdminUsers: React.FC = () => {
             onSubmit={handleAddUser}
             onCancel={() => setIsAddDialogOpen(false)}
             isLoading={isLoading}
+            includeSubscription={true}
           />
         </DialogContent>
       </Dialog>
@@ -361,9 +416,87 @@ const AdminUsers: React.FC = () => {
           {currentUser && (
             <UserDetailsView 
               user={currentUser} 
-              onUpdateSubscription={(data) => handleUpdateSubscription(currentUser.id, data)}
+              onUpdateSubscription={(data) => {
+                if (currentUser?.subscription) {
+                  const updatedSubscription = {
+                    ...currentUser.subscription,
+                    ...data
+                  };
+                  const updatedUser = {
+                    ...currentUser,
+                    subscription: updatedSubscription
+                  };
+                  const updatedUsers = users.map(user => 
+                    user.id === currentUser.id ? updatedUser : user
+                  );
+                  setUsers(updatedUsers);
+                }
+              }}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Subscription Dialog */}
+      <Dialog open={isSubscriptionDialogOpen} onOpenChange={setIsSubscriptionDialogOpen}>
+        <DialogContent>
+          <DialogTitle>Manage Subscription</DialogTitle>
+          <DialogDescription>
+            {currentUser?.name}'s subscription details
+          </DialogDescription>
+          <Card>
+            <CardHeader>
+              <CardTitle>Subscription Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="plan">Subscription Plan</Label>
+                <Select
+                  value={subscriptionData.plan}
+                  onValueChange={(value) => setSubscriptionData(prev => ({ ...prev, plan: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a plan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Subscription</SelectItem>
+                    <SelectItem value="monthly">Monthly Plan</SelectItem>
+                    <SelectItem value="quarterly">Quarterly Plan</SelectItem>
+                    <SelectItem value="annual">Annual Plan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {subscriptionData.plan && (
+                <div className="space-y-2">
+                  <Label htmlFor="status">Subscription Status</Label>
+                  <Select
+                    value={subscriptionData.status}
+                    onValueChange={(value) => setSubscriptionData(prev => ({ ...prev, status: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </CardContent>
+            <CardContent className="flex justify-between pt-2">
+              <Button variant="outline" onClick={() => setIsSubscriptionDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                disabled={isLoading} 
+                onClick={() => currentUser && handleUpdateSubscription(currentUser.id)}
+              >
+                {isLoading ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </CardContent>
+          </Card>
         </DialogContent>
       </Dialog>
     </div>

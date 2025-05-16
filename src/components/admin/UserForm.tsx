@@ -24,6 +24,7 @@ interface UserFormProps {
   onSubmit: (data: any) => void;
   onCancel: () => void;
   isLoading?: boolean;
+  includeSubscription?: boolean;
 }
 
 const UserForm: React.FC<UserFormProps> = ({
@@ -31,12 +32,14 @@ const UserForm: React.FC<UserFormProps> = ({
   onSubmit,
   onCancel,
   isLoading = false,
+  includeSubscription = false,
 }) => {
   const [formData, setFormData] = React.useState({
     name: user?.name || '',
     email: user?.email || '',
     role: user?.role || 'member',
     status: user?.status || 'active',
+    subscription: user?.subscription?.plan || '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,6 +121,26 @@ const UserForm: React.FC<UserFormProps> = ({
               </Select>
             </div>
           </div>
+
+          {includeSubscription && (
+            <div className="space-y-2">
+              <Label htmlFor="subscription">Subscription Plan</Label>
+              <Select
+                value={formData.subscription}
+                onValueChange={(value) => handleSelectChange('subscription', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Subscription</SelectItem>
+                  <SelectItem value="monthly">Monthly Plan</SelectItem>
+                  <SelectItem value="quarterly">Quarterly Plan</SelectItem>
+                  <SelectItem value="annual">Annual Plan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex justify-between">
           <Button type="button" variant="outline" onClick={onCancel}>

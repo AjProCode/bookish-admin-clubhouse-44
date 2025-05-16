@@ -21,7 +21,7 @@ const AdminLayout: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   
-  // Admin credentials from environment variables
+  // Admin credentials with fixed password
   const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
   const adminPassword = 'admin@skillbag123';
 
@@ -92,7 +92,7 @@ const AdminLayout: React.FC = () => {
         variant: "destructive",
       });
     }
-  }
+  };
   
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -113,7 +113,11 @@ const AdminLayout: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="mb-4"
-              onKeyPress={(e) => e.key === 'Enter' && handlePasswordVerification()}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handlePasswordVerification();
+                }
+              }}
             />
             <div className="flex justify-end">
               <Button onClick={handlePasswordVerification}>Verify</Button>

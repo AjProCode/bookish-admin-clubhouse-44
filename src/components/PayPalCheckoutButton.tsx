@@ -65,7 +65,7 @@ const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
       onClick={handlePayPalCheckout}
       disabled={isLoading}
     >
-      {isLoading ? "Processing..." : "Pay with PayPal"}
+      {isLoading ? "Processing..." : "Subscribe"}
     </Button>
   );
 };
