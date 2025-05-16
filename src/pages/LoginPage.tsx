@@ -21,6 +21,7 @@ const LoginPage: React.FC = () => {
   const [lastName, setLastName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<UserState | null>(null);
+  const [alreadyCheckedSession, setAlreadyCheckedSession] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -30,18 +31,24 @@ const LoginPage: React.FC = () => {
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData.session;
       
-      if (session) {
+      if (session && !alreadyCheckedSession) {
         setUser({
           id: session.user.id,
           email: session.user.email
         });
-        const from = location.state?.from?.pathname || '/';
-        navigate(from);
+        setAlreadyCheckedSession(true);
+        
+        // Only navigate if the user actually loaded the login page directly
+        // This prevents infinite loops if called from other components
+        if (location.pathname === '/login') {
+          const from = location.state?.from?.pathname || '/';
+          navigate(from, { replace: true });
+        }
       }
     };
     
     checkUser();
-  }, [navigate, location]);
+  }, [navigate, location, alreadyCheckedSession]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +71,7 @@ const LoginPage: React.FC = () => {
           description: "You have been successfully logged in.",
         });
         const from = location.state?.from?.pathname || '/';
-        navigate(from);
+        navigate(from, { replace: true });
       }
     } catch (error: any) {
       toast({
@@ -88,8 +95,7 @@ const LoginPage: React.FC = () => {
           data: {
             first_name: firstName,
             last_name: lastName,
-          },
-          emailRedirectTo: window.location.origin + '/login',
+          }
         },
       });
       
@@ -100,7 +106,7 @@ const LoginPage: React.FC = () => {
           variant: "destructive"
         });
       } else {
-        // For demo simplicity, automatically log the user in
+        // Automatically log the user in
         await supabase.auth.signInWithPassword({
           email: email,
           password: password,
@@ -108,7 +114,7 @@ const LoginPage: React.FC = () => {
         
         toast({
           title: "Signup successful",
-          description: "You've been automatically logged in.",
+          description: "Your account has been created and you're now logged in.",
         });
         const from = location.state?.from?.pathname || '/';
         navigate(from);

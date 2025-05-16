@@ -13,7 +13,8 @@ import {
   UserReadingLog, 
   UserStatus, 
   UserBook, 
-  ReadingStatus 
+  ReadingStatus,
+  SubscriptionPlan
 } from '@/models/UserBook';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -80,7 +81,7 @@ const sampleUserBooks: UserBook[] = [
     id: 'userbook1',
     bookId: 'book1',
     userId: '1',
-    status: 'completed',
+    status: 'completed' as ReadingStatus,
     dateAdded: '2023-01-10',
     dateStarted: '2023-01-12',
     dateFinished: '2023-01-20',
@@ -94,7 +95,7 @@ const sampleUserBooks: UserBook[] = [
     id: 'userbook2',
     bookId: 'book2',
     userId: '1',
-    status: 'reading',
+    status: 'reading' as ReadingStatus,
     dateAdded: '2023-01-15',
     dateStarted: '2023-01-18',
     pagesRead: 75,
@@ -105,7 +106,7 @@ const sampleUserBooks: UserBook[] = [
     id: 'userbook3',
     bookId: 'book3',
     userId: '2',
-    status: 'want_to_read',
+    status: 'want_to_read' as ReadingStatus,
     dateAdded: '2023-02-01',
     isFavorite: false
   }
@@ -119,7 +120,7 @@ const initialUsers: UserDetails[] = [
     email: 'john@example.com',
     joinDate: 'Jan 15, 2023',
     role: 'admin',
-    status: 'active', 
+    status: 'active' as UserStatus, 
     booksRead: 12,
     subscription: sampleSubscriptions[0],
     readingLogs: sampleReadingLogs.filter(log => log.userId === '1'),
@@ -131,7 +132,7 @@ const initialUsers: UserDetails[] = [
     email: 'jane@example.com',
     joinDate: 'Feb 3, 2023',
     role: 'member',
-    status: 'active',
+    status: 'active' as UserStatus,
     booksRead: 8,
     subscription: sampleSubscriptions[1],
     readingLogs: sampleReadingLogs.filter(log => log.userId === '2'),
@@ -143,7 +144,7 @@ const initialUsers: UserDetails[] = [
     email: 'mike@example.com',
     joinDate: 'Mar 18, 2023',
     role: 'member',
-    status: 'active',
+    status: 'active' as UserStatus,
     booksRead: 15,
     userBooks: []
   },
@@ -153,7 +154,7 @@ const initialUsers: UserDetails[] = [
     email: 'sarah@example.com',
     joinDate: 'Apr 22, 2023',
     role: 'member',
-    status: 'inactive',
+    status: 'inactive' as UserStatus,
     booksRead: 3,
     userBooks: []
   },
@@ -163,7 +164,7 @@ const initialUsers: UserDetails[] = [
     email: 'alex@example.com',
     joinDate: 'May 10, 2023',
     role: 'member',
-    status: 'active',
+    status: 'active' as UserStatus,
     booksRead: 6,
     userBooks: []
   }
@@ -205,7 +206,7 @@ const AdminUsers: React.FC = () => {
         newUser.subscription = {
           id: `subscription-${Date.now()}`,
           userId: newUser.id,
-          plan: userData.subscription,
+          plan: userData.subscription as SubscriptionPlan,
           startDate: new Date().toISOString(),
           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           isActive: true,
@@ -310,7 +311,7 @@ const AdminUsers: React.FC = () => {
               subscription: {
                 id: `subscription-${Date.now()}`,
                 userId: user.id,
-                plan: subscriptionData.plan,
+                plan: subscriptionData.plan as SubscriptionPlan,
                 startDate: new Date().toISOString(),
                 endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 isActive: subscriptionData.status === 'active',
@@ -331,7 +332,7 @@ const AdminUsers: React.FC = () => {
               ...user,
               subscription: {
                 ...user.subscription,
-                plan: subscriptionData.plan,
+                plan: subscriptionData.plan as SubscriptionPlan,
                 isActive: subscriptionData.status === 'active'
               }
             };
@@ -340,7 +341,7 @@ const AdminUsers: React.FC = () => {
         return user;
       });
       
-      setUsers(updatedUsers);
+      setUsers(updatedUsers as UserDetails[]);
       setIsLoading(false);
       setIsSubscriptionDialogOpen(false);
       setCurrentUser(null);
@@ -397,7 +398,17 @@ const AdminUsers: React.FC = () => {
           </DialogDescription>
           {currentUser && (
             <UserForm 
-              user={currentUser}
+              user={{
+                id: currentUser.id,
+                name: currentUser.name,
+                email: currentUser.email,
+                role: currentUser.role,
+                status: currentUser.status,
+                subscription: currentUser.subscription ? {
+                  plan: currentUser.subscription.plan,
+                  status: currentUser.subscription.isActive ? 'active' : 'inactive'
+                } : undefined
+              }}
               onSubmit={handleUpdateUser}
               onCancel={() => setIsEditDialogOpen(false)}
               isLoading={isLoading}

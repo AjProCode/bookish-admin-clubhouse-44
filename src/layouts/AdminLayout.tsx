@@ -21,8 +21,7 @@ const AdminLayout: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   
-  // Admin credentials with fixed password
-  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+  // Admin password is hardcoded here
   const adminPassword = 'admin@skillbag123';
 
   useEffect(() => {
@@ -47,22 +46,9 @@ const AdminLayout: React.FC = () => {
           email: session.user.email
         });
         
-        // For demo purposes, check if email matches admin email
-        if (session.user.email === adminEmail) {
-          console.log("Admin email detected");
-          setShowPasswordPrompt(true);
-          setIsLoading(false);
-          return;
-        } else {
-          // Redirect non-admin users
-          toast({
-            title: "Access denied",
-            description: "You don't have permission to access the admin area",
-            variant: "destructive",
-          });
-          navigate('/');
-          return;
-        }
+        // Show password prompt for all logged in users trying to access admin
+        setShowPasswordPrompt(true);
+        setIsLoading(false);
       } catch (error) {
         console.error("Error in admin layout:", error);
         toast({
@@ -75,7 +61,7 @@ const AdminLayout: React.FC = () => {
     };
     
     checkUser();
-  }, [navigate, adminEmail]);
+  }, [navigate]);
   
   const handlePasswordVerification = () => {
     if (password === adminPassword) {
@@ -107,13 +93,14 @@ const AdminLayout: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-gray-600">Please enter the admin password to continue.</p>
+            <p className="text-xs text-gray-500">Use: admin@skillbag123</p>
             <Input
               type="password"
               placeholder="Admin password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="mb-4"
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   handlePasswordVerification();
                 }
