@@ -34,7 +34,8 @@ const queryClient = new QueryClient();
 // Layout component to handle common structure with Navbar and Footer
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
   <>
-    <main className="min-h-screen">{children}</main>
+    <Navbar />
+    <main>{children}</main>
     <Footer />
   </>
 );
@@ -47,16 +48,18 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Routes>
-            {/* Public Routes */}
+            {/* Public Routes - with Layout */}
             <Route path="/" element={<AppLayout><Index /></AppLayout>} />
             <Route path="/books" element={<AppLayout><BooksPage /></AppLayout>} />
             <Route path="/bookshelf" element={<AppLayout><BookshelfPage /></AppLayout>} />
             <Route path="/reading-log" element={<AppLayout><ReadingLogPage /></AppLayout>} />
             <Route path="/book-review/:bookId" element={<AppLayout><BookReviewPage /></AppLayout>} />
             <Route path="/membership" element={<AppLayout><MembershipPage /></AppLayout>} />
+            
+            {/* Login page - no layout since we removed nav/footer from the component */}
             <Route path="/login" element={<AppLayout><LoginPage /></AppLayout>} />
 
-            {/* Admin Routes - No AppLayout wrapper */}
+            {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="books" element={<AdminBooks />} />
