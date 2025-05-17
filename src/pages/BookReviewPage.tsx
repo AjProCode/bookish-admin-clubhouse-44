@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Book } from '@/components/BookCard';
 import { UserBook, ReadingStatus } from '@/models/UserBook';
@@ -115,7 +114,6 @@ const BookReviewPage: React.FC = () => {
   if (!book) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar />
         <main className="flex-grow py-8">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-3xl font-bold mb-4">Book Not Found</h1>
@@ -132,7 +130,6 @@ const BookReviewPage: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
       <main className="flex-grow py-8">
         <div className="container mx-auto px-4">
           <Link to={`/books/${id}`} className="inline-flex items-center gap-2 text-gray-600 hover:text-bookclub-primary mb-6">

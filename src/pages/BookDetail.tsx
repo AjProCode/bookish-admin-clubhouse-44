@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +53,6 @@ const BookDetail: React.FC = () => {
   if (!book) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar />
         <main className="flex-grow container mx-auto px-4 py-8">
           <div className="text-center py-12">
             <h2 className="text-2xl font-semibold mb-4">Book not found</h2>
@@ -71,7 +69,6 @@ const BookDetail: React.FC = () => {
   
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="mb-4">
           <Button variant="ghost" size="sm" asChild>

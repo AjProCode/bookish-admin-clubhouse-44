@@ -34,7 +34,6 @@ const queryClient = new QueryClient();
 // Layout component to handle common structure with Navbar and Footer
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
   <>
-    <Navbar />
     <main className="min-h-screen">{children}</main>
     <Footer />
   </>
