@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/admin/AdminSidebar';
@@ -9,52 +10,13 @@ import { Button } from '@/components/ui/button';
 
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showPasswordDialog, setShowPasswordDialog] = useState(true);
   const [password, setPassword] = useState('');
   
   useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData?.session) {
-          toast({
-            title: "Authentication required",
-            description: "You need to be logged in to access the admin area",
-            variant: "destructive",
-          });
-          navigate('/login', { state: { from: location }});
-          return;
-        }
-
-        // Check if user is admin
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', sessionData.session.user.id)
-          .single();
-
-        if (profileData?.role !== 'admin') {
-          toast({
-            title: "Access denied",
-            description: "You don't have permission to access the admin area",
-            variant: "destructive",
-          });
-          navigate('/');
-          return;
-        }
-
-        setUser(sessionData.session.user);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error in admin layout:", error);
-        navigate('/');
-      }
-    };
-    
-    checkUser();
-  }, [navigate]);
+    setIsLoading(false);
+  }, []);
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,7 +67,7 @@ const AdminLayout: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
       <AdminSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">

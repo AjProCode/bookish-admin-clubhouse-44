@@ -16,7 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Pencil, Lock, Unlock, FileText } from 'lucide-react';
+import { MoreHorizontal, Pencil, Lock, Unlock, FileText, Trash2, Key } from 'lucide-react';
 import { UserDetails } from '@/models/UserBook';
 
 // Export the User interface that's compatible with UserDetails
@@ -38,6 +38,8 @@ interface UserTableProps {
   onViewDetails: (id: string) => void;
   onToggleStatus: (id: string) => void;
   onManageSubscription?: (id: string) => void;
+  onDeleteUser: (id: string) => void;
+  onResetPassword: (id: string) => void;
 }
 
 const UserTable: React.FC<UserTableProps> = ({ 
@@ -45,7 +47,9 @@ const UserTable: React.FC<UserTableProps> = ({
   onEdit, 
   onViewDetails,
   onToggleStatus,
-  onManageSubscription
+  onManageSubscription,
+  onDeleteUser,
+  onResetPassword
 }) => {
   return (
     <div className="border rounded-md overflow-hidden">
@@ -123,6 +127,17 @@ const UserTable: React.FC<UserTableProps> = ({
                           Activate
                         </>
                       )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onResetPassword(user.id)}>
+                      <Key className="h-4 w-4 mr-2" />
+                      Reset Password
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => onDeleteUser(user.id)}
+                      className="text-red-600 hover:text-red-700 focus:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete User
                     </DropdownMenuItem>
                     {onManageSubscription && (
                       <DropdownMenuItem onClick={() => onManageSubscription(user.id)}>
