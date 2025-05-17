@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import Navbar from '@/compo
+import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { UserBook } from '@/models/UserBook';
 import { Book } from '@/components/BookCard';
