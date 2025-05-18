@@ -17,7 +17,6 @@ import NotFound from "./pages/NotFound";
 import BookshelfPage from "./pages/BookshelfPage";
 import ReadingLogPage from "./pages/ReadingLogPage";
 import BookReviewPage from "./pages/BookReviewPage";
-import MembershipPage from "./pages/MembershipPage";
 
 // Admin Pages
 import AdminLayout from "./layouts/AdminLayout";
@@ -25,7 +24,6 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBooks from "./pages/admin/AdminBooks";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminSettings from "./pages/admin/AdminSettings";
-import MembershipPlans from "./pages/admin/MembershipPlans";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
