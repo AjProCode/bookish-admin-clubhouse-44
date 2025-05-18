@@ -119,7 +119,6 @@ const BooksPage: React.FC = () => {
   
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
       <main className="flex-grow py-8">
         <div className="container mx-auto px-4">
           <div className="mb-8">

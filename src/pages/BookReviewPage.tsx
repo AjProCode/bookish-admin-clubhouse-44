@@ -96,7 +96,6 @@ const BookReviewPage: React.FC = () => {
   if (!book) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar />
         <main className="flex-grow py-8">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-3xl font-bold mb-4">Book Not Found</h1>
