@@ -212,7 +212,6 @@ const BooksPage: React.FC = () => {
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 };
