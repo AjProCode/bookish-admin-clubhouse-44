@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import AdminSidebar from '../components/admin/AdminSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -12,6 +11,7 @@ interface UserData {
 
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -55,7 +55,7 @@ const AdminLayout: React.FC = () => {
     };
     
     checkUser();
-  }, [navigate]);
+  }, [navigate, location]);
   
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;

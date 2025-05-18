@@ -52,7 +52,6 @@ const App = () => (
             <Route path="/bookshelf" element={<AppLayout><BookshelfPage /></AppLayout>} />
             <Route path="/reading-log" element={<AppLayout><ReadingLogPage /></AppLayout>} />
             <Route path="/book-review/:bookId" element={<AppLayout><BookReviewPage /></AppLayout>} />
-            <Route path="/membership" element={<AppLayout><MembershipPage /></AppLayout>} />
             
             {/* Login page - no layout since we removed nav/footer from the component */}
             <Route path="/login" element={<AppLayout><LoginPage /></AppLayout>} />
@@ -63,7 +62,6 @@ const App = () => (
               <Route path="books" element={<AdminBooks />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="settings" element={<AdminSettings />} />
-              <Route path="membership-plans" element={<MembershipPlans />} />
             </Route>
 
             {/* Not Found Route */}
