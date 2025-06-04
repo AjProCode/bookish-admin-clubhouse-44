@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus } from 'lucide-react';
@@ -18,6 +18,7 @@ const AdminBooks: React.FC = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   
   const fetchBooks = async () => {
     try {
@@ -33,13 +34,12 @@ const AdminBooks: React.FC = () => {
       }
       
       if (data) {
-        // Format the data to match the Book interface
         const formattedBooks: Book[] = data.map(book => ({
           id: book.id,
           title: book.title,
           author: book.author,
           description: book.description || '',
-          coverImage: book.coverimage || '', // Fixed: coverimage -> coverImage
+          coverImage: book.coverimage || '',
           categories: book.categories || [],
           rating: book.rating || 0,
         }));
@@ -57,34 +57,43 @@ const AdminBooks: React.FC = () => {
     fetchBooks();
   }, []);
   
-  const handleAddBook = async (bookData: Partial<Book>) => {
+  const handleAddBook = async (bookData: any) => {
     try {
+      setIsSaving(true);
+      console.log("Adding book with data:", bookData);
+      
       const { data, error } = await supabase
         .from('books')
         .insert({
           title: bookData.title || '',
           author: bookData.author || '',
           description: bookData.description || '',
-          coverimage: bookData.coverImage || '', // Fixed: coverImage -> coverimage
+          coverimage: bookData.coverImage || '',
           categories: bookData.categories || [],
-          rating: bookData.rating || 0
+          rating: Number(bookData.rating) || 0
         })
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+      
+      console.log("Book added successfully:", data);
       
       if (data) {
-        setBooks([...books, {
+        const newBook: Book = {
           id: data.id,
           title: data.title,
           author: data.author,
           description: data.description || '',
-          coverImage: data.coverimage || '', // Fixed: coverimage -> coverImage
+          coverImage: data.coverimage || '',
           categories: data.categories || [],
           rating: data.rating || 0
-        }]);
+        };
         
+        setBooks([...books, newBook]);
         setIsAddDialogOpen(false);
         
         toast({
@@ -99,6 +108,8 @@ const AdminBooks: React.FC = () => {
         description: `Failed to add book: ${error.message}`,
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
   };
   
@@ -110,19 +121,20 @@ const AdminBooks: React.FC = () => {
     }
   };
   
-  const handleUpdateBook = async (bookData: Partial<Book>) => {
+  const handleUpdateBook = async (bookData: any) => {
     if (!currentBook) return;
     
     try {
+      setIsSaving(true);
       const { data, error } = await supabase
         .from('books')
         .update({
           title: bookData.title || '',
           author: bookData.author || '',
           description: bookData.description || '',
-          coverimage: bookData.coverImage || '', // Fixed: coverImage -> coverimage
+          coverimage: bookData.coverImage || '',
           categories: bookData.categories || [],
-          rating: bookData.rating || 0
+          rating: Number(bookData.rating) || 0
         })
         .eq('id', currentBook.id)
         .select()
@@ -131,16 +143,18 @@ const AdminBooks: React.FC = () => {
       if (error) throw error;
       
       if (data) {
+        const updatedBook: Book = {
+          id: data.id,
+          title: data.title,
+          author: data.author,
+          description: data.description || '',
+          coverImage: data.coverimage || '',
+          categories: data.categories || [],
+          rating: data.rating || 0
+        };
+        
         setBooks(books.map(book => 
-          book.id === currentBook.id ? {
-            id: data.id,
-            title: data.title,
-            author: data.author,
-            description: data.description || '',
-            coverImage: data.coverimage || '', // Fixed: coverimage -> coverImage
-            categories: data.categories || [],
-            rating: data.rating || 0
-          } : book
+          book.id === currentBook.id ? updatedBook : book
         ));
         
         setIsEditDialogOpen(false);
@@ -158,6 +172,8 @@ const AdminBooks: React.FC = () => {
         description: `Failed to update book: ${error.message}`,
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
   };
   
@@ -207,16 +223,28 @@ const AdminBooks: React.FC = () => {
         <CardHeader>
           <CardTitle>Books ({books.length})</CardTitle>
         </CardHeader>
-        <BookTable 
-          books={books}
-          onEdit={handleEditBook}
-          onDelete={handleDeleteBook}
-        />
+        <CardContent>
+          {books.length > 0 ? (
+            <BookTable 
+              books={books}
+              onEdit={handleEditBook}
+              onDelete={handleDeleteBook}
+            />
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">No books in the library yet</p>
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Your First Book
+              </Button>
+            </div>
+          )}
+        </CardContent>
       </Card>
       
       {/* Add Book Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogTitle>Add Book</DialogTitle>
           <Tabs defaultValue="manual">
             <TabsList className="grid w-full grid-cols-2">
@@ -224,7 +252,11 @@ const AdminBooks: React.FC = () => {
               <TabsTrigger value="google">Google Books</TabsTrigger>
             </TabsList>
             <TabsContent value="manual" className="pt-4">
-              <BookForm onSubmit={handleAddBook} onCancel={() => setIsAddDialogOpen(false)} />
+              <BookForm 
+                onSubmit={handleAddBook} 
+                onCancel={() => setIsAddDialogOpen(false)}
+                isLoading={isSaving}
+              />
             </TabsContent>
             <TabsContent value="google" className="pt-4">
               <GoogleBooksIntegration onBookAdded={() => {
@@ -238,7 +270,7 @@ const AdminBooks: React.FC = () => {
       
       {/* Edit Book Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogTitle>Edit Book</DialogTitle>
           {currentBook && (
             <BookForm 
@@ -248,6 +280,7 @@ const AdminBooks: React.FC = () => {
                 setIsEditDialogOpen(false);
                 setCurrentBook(null);
               }}
+              isLoading={isSaving}
             />
           )}
         </DialogContent>

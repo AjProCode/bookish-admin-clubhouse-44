@@ -1,35 +1,64 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Book } from '@/components/BookCard';
-
-// Sample books data - this would typically come from an API or database
-const sampleBooks: Book[] = [
-  {
-    id: '1',
-    title: 'The Great Gatsby',
-    author: 'F. Scott Fitzgerald',
-    coverImage: 'https://covers.openlibrary.org/b/id/8225261-L.jpg',
-    categories: ['Fiction', 'Classic'],
-    rating: 4,
-    description: 'A classic American novel set in the Jazz Age, exploring themes of decadence, idealism, and the American Dream.'
-  },
-  {
-    id: '2',
-    title: 'To Kill a Mockingbird',
-    author: 'Harper Lee',
-    coverImage: 'https://covers.openlibrary.org/b/id/8228691-L.jpg',
-    categories: ['Fiction', 'Classic', 'Drama'],
-    rating: 5,
-    description: 'A gripping tale of racial injustice and childhood innocence in the American South.'
-  }
-];
+import { supabase } from '@/integrations/supabase/client';
 
 const BookDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const book = sampleBooks.find(b => b.id === id);
+  const [book, setBook] = useState<Book | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchBook = async () => {
+      if (!id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('books')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+          
+        if (error) {
+          console.error('Error fetching book:', error);
+          return;
+        }
+        
+        if (data) {
+          setBook({
+            id: data.id,
+            title: data.title,
+            author: data.author,
+            description: data.description || '',
+            coverImage: data.coverimage || '',
+            categories: data.categories || [],
+            rating: data.rating || 0
+          });
+        }
+      } catch (error) {
+        console.error('Error in fetchBook:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchBook();
+  }, [id]);
+  
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <p>Loading book details...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
   
   if (!book) {
     return (
@@ -108,7 +137,7 @@ const BookDetail: React.FC = () => {
             <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
               <h2 className="text-xl font-semibold mb-4">Description</h2>
               <p className="text-gray-700 mb-4">
-                {book.description}
+                {book.description || 'No description available.'}
               </p>
             </div>
             

@@ -12,6 +12,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // Public Pages
 import Index from "./pages/Index";
 import BooksPage from "./pages/BooksPage";
+import BookDetail from "./pages/BookDetail";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 import BookshelfPage from "./pages/BookshelfPage";
@@ -49,6 +50,7 @@ const App = () => (
             {/* Public Routes - with Layout */}
             <Route path="/" element={<AppLayout><Index /></AppLayout>} />
             <Route path="/books" element={<AppLayout><BooksPage /></AppLayout>} />
+            <Route path="/books/:id" element={<AppLayout><BookDetail /></AppLayout>} />
             <Route path="/bookshelf" element={<AppLayout><BookshelfPage /></AppLayout>} />
             <Route path="/reading-log" element={<AppLayout><ReadingLogPage /></AppLayout>} />
             <Route path="/book-review/:bookId" element={<AppLayout><BookReviewPage /></AppLayout>} />
