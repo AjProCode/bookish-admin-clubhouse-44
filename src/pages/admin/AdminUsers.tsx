@@ -20,158 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-// Sample user subscription data
-const sampleSubscriptions: UserSubscription[] = [
-  {
-    id: '1',
-    userId: '1',
-    plan: 'quarterly',
-    startDate: '2023-01-15',
-    endDate: '2023-04-15',
-    isActive: true,
-    nextDeliveryDate: '2023-02-15',
-    booksDelivered: 6
-  },
-  {
-    id: '2',
-    userId: '2',
-    plan: 'monthly',
-    startDate: '2023-02-03',
-    endDate: '2023-03-03',
-    isActive: true,
-    nextDeliveryDate: '2023-02-20',
-    booksDelivered: 3
-  }
-];
-
-// Sample reading logs
-const sampleReadingLogs: UserReadingLog[] = [
-  {
-    id: '1',
-    userId: '1',
-    bookId: 'book1',
-    date: '2023-01-20',
-    minutesRead: 45,
-    pagesRead: 20,
-    notes: 'Enjoyed the first chapter!'
-  },
-  {
-    id: '2',
-    userId: '1',
-    bookId: 'book2',
-    date: '2023-01-22',
-    minutesRead: 30,
-    pagesRead: 15,
-    notes: 'This book is exciting!'
-  },
-  {
-    id: '3',
-    userId: '2',
-    bookId: 'book3',
-    date: '2023-02-05',
-    minutesRead: 60,
-    pagesRead: 25,
-    notes: 'Great illustrations in this book.'
-  }
-];
-
-// Sample user books (bookshelf)
-const sampleUserBooks: UserBook[] = [
-  {
-    id: 'userbook1',
-    bookId: 'book1',
-    userId: '1',
-    status: 'completed' as ReadingStatus,
-    dateAdded: '2023-01-10',
-    dateStarted: '2023-01-12',
-    dateFinished: '2023-01-20',
-    pagesRead: 200,
-    rating: 4,
-    review: 'Great book for beginners!',
-    notes: 'Would recommend to friends.',
-    isFavorite: true
-  },
-  {
-    id: 'userbook2',
-    bookId: 'book2',
-    userId: '1',
-    status: 'reading' as ReadingStatus,
-    dateAdded: '2023-01-15',
-    dateStarted: '2023-01-18',
-    pagesRead: 75,
-    notes: 'Interesting plot developments.',
-    isFavorite: false
-  },
-  {
-    id: 'userbook3',
-    bookId: 'book3',
-    userId: '2',
-    status: 'want_to_read' as ReadingStatus,
-    dateAdded: '2023-02-01',
-    isFavorite: false
-  }
-];
-
-// Sample users data with extended information
-const initialUsers: UserDetails[] = [
-  {
-    id: '1',
-    name: 'John Doe',
-    email: 'john@example.com',
-    joinDate: 'Jan 15, 2023',
-    role: 'admin',
-    status: 'active' as UserStatus, 
-    booksRead: 12,
-    subscription: sampleSubscriptions[0],
-    readingLogs: sampleReadingLogs.filter(log => log.userId === '1'),
-    userBooks: sampleUserBooks.filter(book => book.userId === '1')
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    joinDate: 'Feb 3, 2023',
-    role: 'member',
-    status: 'active' as UserStatus,
-    booksRead: 8,
-    subscription: sampleSubscriptions[1],
-    readingLogs: sampleReadingLogs.filter(log => log.userId === '2'),
-    userBooks: sampleUserBooks.filter(book => book.userId === '2')
-  },
-  {
-    id: '3',
-    name: 'Mike Johnson',
-    email: 'mike@example.com',
-    joinDate: 'Mar 18, 2023',
-    role: 'member',
-    status: 'active' as UserStatus,
-    booksRead: 15,
-    userBooks: []
-  },
-  {
-    id: '4',
-    name: 'Sarah Williams',
-    email: 'sarah@example.com',
-    joinDate: 'Apr 22, 2023',
-    role: 'member',
-    status: 'inactive' as UserStatus,
-    booksRead: 3,
-    userBooks: []
-  },
-  {
-    id: '5',
-    name: 'Alex Brown',
-    email: 'alex@example.com',
-    joinDate: 'May 10, 2023',
-    role: 'member',
-    status: 'active' as UserStatus,
-    booksRead: 6,
-    userBooks: []
-  }
-];
-
 const AdminUsers: React.FC = () => {
-  const [users, setUsers] = useState<UserDetails[]>(initialUsers);
+  const [users, setUsers] = useState<UserDetails[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
@@ -364,13 +214,20 @@ const AdminUsers: React.FC = () => {
           </Button>
         </div>
         
-        <UserTable 
-          users={users} 
-          onEdit={handleEditUser}
-          onViewDetails={handleViewUserDetails}
-          onToggleStatus={handleToggleUserStatus}
-          onManageSubscription={handleManageSubscription}
-        />
+        {users.length === 0 ? (
+          <div className="text-center py-12">
+            <h3 className="text-lg font-medium mb-2">No users found</h3>
+            <p className="text-gray-500">Add users to get started managing your community.</p>
+          </div>
+        ) : (
+          <UserTable 
+            users={users} 
+            onEdit={handleEditUser}
+            onViewDetails={handleViewUserDetails}
+            onToggleStatus={handleToggleUserStatus}
+            onManageSubscription={handleManageSubscription}
+          />
+        )}
       </div>
       
       {/* Add User Dialog */}
