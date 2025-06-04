@@ -53,7 +53,7 @@ const App = () => (
             <Route path="/reading-log" element={<AppLayout><ReadingLogPage /></AppLayout>} />
             <Route path="/book-review/:bookId" element={<AppLayout><BookReviewPage /></AppLayout>} />
             
-            {/* Login page - no layout since we removed nav/footer from the component */}
+            {/* Login page - with layout */}
             <Route path="/login" element={<AppLayout><LoginPage /></AppLayout>} />
 
             {/* Admin Routes */}

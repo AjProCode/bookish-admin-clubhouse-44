@@ -139,9 +139,6 @@ const Navbar: React.FC = () => {
                   <DropdownMenuItem asChild>
                     <Link to="/reading-log" className="w-full hover:text-indigo-700">Reading Log</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/membership" className="w-full hover:text-indigo-700">Membership</Link>
-                  </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem asChild>
                       <Link to="/admin" className="w-full hover:text-indigo-700">Admin</Link>
@@ -170,7 +167,6 @@ const Navbar: React.FC = () => {
               <>
                 <Link to="/bookshelf" className="text-indigo-700 hover:text-indigo-900 transition-colors">My Bookshelf</Link>
                 <Link to="/reading-log" className="text-indigo-700 hover:text-indigo-900 transition-colors">Reading Log</Link>
-                <Link to="/membership" className="text-indigo-700 hover:text-indigo-900 transition-colors">Membership</Link>
                 {isAdmin && (
                   <Link to="/admin" className="text-indigo-700 hover:text-indigo-900 transition-colors">Admin</Link>
                 )}

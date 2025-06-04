@@ -1,64 +1,85 @@
+
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import AdminSidebar from '../components/admin/AdminSidebar';
-import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 
-interface UserData {
-  id: string;
-  email?: string;
-}
+const ADMIN_PASSWORD = "admin123"; // Simple admin password
 
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState<UserData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   
-  useEffect(() => {
-    // Check if user is logged in
-    const checkUser = async () => {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const session = sessionData?.session;
-        
-        if (!session) {
-          toast({
-            title: "Authentication required",
-            description: "You need to be logged in to access the admin area",
-            variant: "destructive",
-          });
-          navigate('/login', { state: { from: location }});
-          return;
-        }
-        
-        setUser({
-          id: session.user.id,
-          email: session.user.email
-        });
-        
-        setIsLoading(false);
-        
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    setTimeout(() => {
+      if (password === ADMIN_PASSWORD) {
+        setIsAuthenticated(true);
+        sessionStorage.setItem('adminAuth', 'true');
         toast({
           title: "Admin access granted",
           description: "Welcome to the admin area",
         });
-      } catch (error) {
-        console.error("Error in admin layout:", error);
+      } else {
         toast({
-          title: "Error",
-          description: "An unexpected error occurred",
+          title: "Access denied",
+          description: "Incorrect admin password",
           variant: "destructive",
         });
-        navigate('/');
       }
-    };
-    
-    checkUser();
-  }, [navigate, location]);
+      setIsLoading(false);
+    }, 500);
+  };
+
+  useEffect(() => {
+    // Check if already authenticated
+    const isAdminAuth = sessionStorage.getItem('adminAuth');
+    if (isAdminAuth === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
   
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Admin Access</CardTitle>
+            <CardDescription>Enter the admin password to continue</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <Input
+                type="password"
+                placeholder="Admin password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? 'Checking...' : 'Access Admin'}
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => navigate('/')}
+              >
+                Back to Home
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
