@@ -5,11 +5,31 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Book } from '@/components/BookCard';
 
-// Sample books data - this would typically come from an API
+// Sample books data - this would typically come from an API or database
+const sampleBooks: Book[] = [
+  {
+    id: '1',
+    title: 'The Great Gatsby',
+    author: 'F. Scott Fitzgerald',
+    coverImage: 'https://covers.openlibrary.org/b/id/8225261-L.jpg',
+    categories: ['Fiction', 'Classic'],
+    rating: 4,
+    description: 'A classic American novel set in the Jazz Age, exploring themes of decadence, idealism, and the American Dream.'
+  },
+  {
+    id: '2',
+    title: 'To Kill a Mockingbird',
+    author: 'Harper Lee',
+    coverImage: 'https://covers.openlibrary.org/b/id/8228691-L.jpg',
+    categories: ['Fiction', 'Classic', 'Drama'],
+    rating: 5,
+    description: 'A gripping tale of racial injustice and childhood innocence in the American South.'
+  }
+];
 
 const BookDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const book = [].find(b => b.id === id);
+  const book = sampleBooks.find(b => b.id === id);
   
   if (!book) {
     return (
