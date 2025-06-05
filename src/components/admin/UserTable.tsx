@@ -16,21 +16,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Pencil, Lock, Unlock, FileText } from 'lucide-react';
+import { MoreHorizontal, Pencil, Lock, Unlock, FileText, Key } from 'lucide-react';
 import { UserDetails } from '@/models/UserBook';
-
-// Export the User interface that's compatible with UserDetails
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'admin' | 'member';
-  status: 'active' | 'inactive';
-  subscription?: {
-    plan: string;
-    status: string;
-  };
-}
 
 interface UserTableProps {
   users: UserDetails[];
@@ -38,6 +25,7 @@ interface UserTableProps {
   onViewDetails: (id: string) => void;
   onToggleStatus: (id: string) => void;
   onManageSubscription?: (id: string) => void;
+  onChangePassword: (id: string) => void;
 }
 
 const UserTable: React.FC<UserTableProps> = ({ 
@@ -45,7 +33,8 @@ const UserTable: React.FC<UserTableProps> = ({
   onEdit, 
   onViewDetails,
   onToggleStatus,
-  onManageSubscription
+  onManageSubscription,
+  onChangePassword
 }) => {
   return (
     <div className="border rounded-md overflow-hidden">
@@ -110,6 +99,10 @@ const UserTable: React.FC<UserTableProps> = ({
                     <DropdownMenuItem onClick={() => onEdit(user.id)}>
                       <Pencil className="h-4 w-4 mr-2" />
                       Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onChangePassword(user.id)}>
+                      <Key className="h-4 w-4 mr-2" />
+                      Change Password
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onToggleStatus(user.id)}>
                       {user.status === 'active' ? (

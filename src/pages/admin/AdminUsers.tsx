@@ -9,17 +9,11 @@ import { toast } from '@/hooks/use-toast';
 import { Plus } from 'lucide-react';
 import { 
   UserDetails, 
-  UserSubscription, 
-  UserReadingLog, 
-  UserStatus, 
-  UserBook, 
-  ReadingStatus,
-  SubscriptionPlan
+  UserStatus
 } from '@/models/UserBook';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 
 const AdminUsers: React.FC = () => {
@@ -52,7 +46,7 @@ const AdminUsers: React.FC = () => {
         id: profile.id,
         name: profile.name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown',
         email: profile.email || '',
-        role: profile.role || 'member',
+        role: (profile.role === 'admin' ? 'admin' : 'member') as 'admin' | 'member',
         status: profile.status as UserStatus || 'inactive',
         joinDate: profile.join_date || new Date().toLocaleDateString(),
         booksRead: profile.books_read || 0,
@@ -179,7 +173,7 @@ const AdminUsers: React.FC = () => {
       const { error } = await supabase
         .from('profiles')
         .update({
-          name: userData.name,
+          name: `${userData.firstName} ${userData.lastName}`,
           email: userData.email,
           role: userData.role,
           status: userData.status,
@@ -201,7 +195,7 @@ const AdminUsers: React.FC = () => {
         
         toast({
           title: "User Updated",
-          description: `${userData.name}'s information has been updated.`,
+          description: `${userData.firstName} ${userData.lastName}'s information has been updated.`,
         });
       }
     } catch (error) {
