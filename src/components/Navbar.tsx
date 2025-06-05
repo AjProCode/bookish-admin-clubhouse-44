@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,99 +11,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu, User, LogOut } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-
-interface UserData {
-  id: string;
-  email?: string;
-}
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserData | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  
-  useEffect(() => {
-    // Check if user is logged in
-    const checkUser = async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData.session;
-      if (session) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email
-        });
-        
-        // Check if user email matches admin email
-        if (session.user.email === import.meta.env.VITE_ADMIN_EMAIL) {
-          setIsAdmin(true);
-          console.log("Admin detected with matching email:", session.user.email);
-        }
-      }
-    };
-    
-    checkUser();
-    
-    // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth event:", event);
-      if (event === 'SIGNED_IN' && session) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email
-        });
-        
-        // Check for admin email when signing in
-        if (session.user.email === import.meta.env.VITE_ADMIN_EMAIL) {
-          setIsAdmin(true);
-          console.log("Admin detected with matching email:", session.user.email);
-        } else {
-          setIsAdmin(false);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setIsAdmin(false);
-        console.log("User signed out");
-      }
-    });
-    
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
+  const { user, isAdmin, signOut } = useAuth();
   
   const handleLogout = async () => {
-    try {
-      console.log("Attempting to sign out...");
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Error during logout:", error);
-        toast({
-          title: "Logout failed",
-          description: "There was an error logging out. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      setUser(null);
-      setIsAdmin(false);
-      toast({
-        title: "Logged out",
-        description: "You have been logged out successfully."
-      });
-      navigate('/');
-      console.log("User successfully signed out");
-    } catch (error) {
-      console.error("Exception during logout:", error);
-      toast({
-        title: "Logout failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive"
-      });
-    }
+    await signOut();
+    navigate('/');
   };
   
   return (
@@ -128,11 +45,11 @@ const Navbar: React.FC = () => {
               <DropdownMenuItem asChild>
                 <Link to="/" className="w-full hover:text-gray-900">Home</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/books" className="w-full hover:text-gray-900">Browse Books</Link>
-              </DropdownMenuItem>
-              {user ? (
+              {user && (
                 <>
+                  <DropdownMenuItem asChild>
+                    <Link to="/books" className="w-full hover:text-gray-900">Browse Books</Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/bookshelf" className="w-full hover:text-gray-900">My Bookshelf</Link>
                   </DropdownMenuItem>
@@ -152,7 +69,8 @@ const Navbar: React.FC = () => {
                     </span>
                   </DropdownMenuItem>
                 </>
-              ) : (
+              )}
+              {!user && (
                 <DropdownMenuItem asChild>
                   <Link to="/login" className="w-full hover:text-gray-900">Login</Link>
                 </DropdownMenuItem>
@@ -162,9 +80,9 @@ const Navbar: React.FC = () => {
         ) : (
           <nav className="flex items-center gap-6">
             <Link to="/" className="text-gray-700 hover:text-gray-900 transition-colors">Home</Link>
-            <Link to="/books" className="text-gray-700 hover:text-gray-900 transition-colors">Browse Books</Link>
             {user ? (
               <>
+                <Link to="/books" className="text-gray-700 hover:text-gray-900 transition-colors">Browse Books</Link>
                 <Link to="/bookshelf" className="text-gray-700 hover:text-gray-900 transition-colors">My Bookshelf</Link>
                 <Link to="/reading-log" className="text-gray-700 hover:text-gray-900 transition-colors">Reading Log</Link>
                 {isAdmin && (
