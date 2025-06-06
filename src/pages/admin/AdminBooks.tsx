@@ -7,16 +7,7 @@ import BookForm from '@/components/admin/BookForm';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-
-interface Book {
-  id: string;
-  title: string;
-  author: string;
-  description?: string;
-  coverimage?: string;
-  categories?: string[];
-  rating?: number;
-}
+import { Book } from '@/components/BookCard';
 
 const AdminBooks: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
