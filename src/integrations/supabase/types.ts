@@ -41,25 +41,40 @@ export type Database = {
       }
       profiles: {
         Row: {
+          books_read: number | null
           email: string | null
           first_name: string | null
-          id: number
+          id: string
+          join_date: string | null
           last_name: string | null
+          name: string | null
           role: string | null
+          status: string | null
+          user_id: string | null
         }
         Insert: {
+          books_read?: number | null
           email?: string | null
           first_name?: string | null
-          id?: number
+          id?: string
+          join_date?: string | null
           last_name?: string | null
+          name?: string | null
           role?: string | null
+          status?: string | null
+          user_id?: string | null
         }
         Update: {
+          books_read?: number | null
           email?: string | null
           first_name?: string | null
-          id?: number
+          id?: string
+          join_date?: string | null
           last_name?: string | null
+          name?: string | null
           role?: string | null
+          status?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -125,6 +140,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_update_user_password: {
+        Args: { target_user_id: string; new_password: string }
+        Returns: boolean
+      }
       create_profile: {
         Args: {
           user_id: string
@@ -136,6 +155,10 @@ export type Database = {
       }
       is_admin: {
         Args: { user_id: string }
+        Returns: boolean
+      }
+      is_user_approved: {
+        Args: { user_uuid: string }
         Returns: boolean
       }
     }

@@ -1,7 +1,4 @@
-
-import React, { useState } from 'react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import React, { useState, useEffect } from 'react';
 import BookCard, { Book } from '@/components/BookCard';
 import SearchBar from '@/components/SearchBar';
 import { Button } from '@/components/ui/button';
@@ -12,100 +9,96 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-// Sample books data
-const allBooks: Book[] = [
-  {
-    id: '1',
-    title: 'Atomic Habits',
-    author: 'James Clear',
-    coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80',
-    categories: ['Self-Help', 'Productivity'],
-    rating: 5
-  },
-  {
-    id: '2',
-    title: 'Deep Work',
-    author: 'Cal Newport',
-    coverImage: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80',
-    categories: ['Productivity', 'Business'],
-    rating: 4
-  },
-  {
-    id: '3',
-    title: 'The Psychology of Money',
-    author: 'Morgan Housel',
-    coverImage: 'https://images.unsplash.com/photo-1553729784-e91953dec042?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80',
-    categories: ['Finance', 'Psychology'],
-    rating: 5
-  },
-  {
-    id: '4',
-    title: 'Thinking, Fast and Slow',
-    author: 'Daniel Kahneman',
-    coverImage: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80',
-    categories: ['Psychology', 'Science'],
-    rating: 4
-  },
-  {
-    id: '5',
-    title: 'Sapiens',
-    author: 'Yuval Noah Harari',
-    coverImage: 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80',
-    categories: ['History', 'Science'],
-    rating: 5
-  },
-  {
-    id: '6',
-    title: 'Start with Why',
-    author: 'Simon Sinek',
-    coverImage: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80',
-    categories: ['Business', 'Leadership'],
-    rating: 4
-  },
-  {
-    id: '7',
-    title: 'Mindset',
-    author: 'Carol Dweck',
-    coverImage: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80',
-    categories: ['Psychology', 'Self-Help'],
-    rating: 4
-  },
-  {
-    id: '8',
-    title: 'The Lean Startup',
-    author: 'Eric Ries',
-    coverImage: 'https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80',
-    categories: ['Business', 'Entrepreneurship'],
-    rating: 4
-  },
-];
-
-// Get all unique categories
-const allCategories = Array.from(new Set(allBooks.flatMap(book => book.categories)));
+import { supabase } from '@/integrations/supabase/client';
 
 const BooksPage: React.FC = () => {
+  const [allBooks, setAllBooks] = useState<Book[]>([]);
+  const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [ratingFilter, setRatingFilter] = useState('All');
-  
-  // Apply filters
-  const filteredBooks = allBooks.filter(book => {
+  const [sortBy, setSortBy] = useState('newest');
+
+  // Fetch books from database
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('books')
+          .select('*')
+          .order('title');
+          
+        if (error) {
+          console.error('Error fetching books:', error);
+          return;
+        }
+        
+        if (data) {
+          const formattedBooks: Book[] = data.map(book => ({
+            id: book.id,
+            title: book.title,
+            author: book.author,
+            description: book.description || '',
+            coverImage: book.coverimage || '',
+            categories: book.categories || [],
+            rating: book.rating || 0,
+          }));
+          
+          setAllBooks(formattedBooks);
+        }
+      } catch (error) {
+        console.error('Error in fetchBooks:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchBooks();
+  }, []);
+
+  // Get all unique categories from the fetched books
+  const allCategories = Array.from(new Set(allBooks.flatMap(book => book.categories)));
+
+  // Apply filters whenever books or filter values change
+  useEffect(() => {
+    let filtered = [...allBooks];
+
     // Search filter
-    const matchesSearch = searchQuery === '' || 
-      book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.author.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    if (searchQuery) {
+      filtered = filtered.filter(book => 
+        book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        book.author.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
     // Category filter
-    const matchesCategory = categoryFilter === 'All' ||
-      book.categories.includes(categoryFilter);
-    
+    if (categoryFilter !== 'All') {
+      filtered = filtered.filter(book => book.categories.includes(categoryFilter));
+    }
+
     // Rating filter
-    const matchesRating = ratingFilter === 'All' ||
-      book.rating === parseInt(ratingFilter);
-    
-    return matchesSearch && matchesCategory && matchesRating;
-  });
+    if (ratingFilter !== 'All') {
+      filtered = filtered.filter(book => book.rating === parseInt(ratingFilter));
+    }
+
+    // Sort books
+    switch (sortBy) {
+      case 'title':
+        filtered.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case 'rating':
+        filtered.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'newest':
+      default:
+        // Keep original order (newest first)
+        break;
+    }
+
+    setFilteredBooks(filtered);
+  }, [allBooks, searchQuery, categoryFilter, ratingFilter, sortBy]);
   
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -115,11 +108,29 @@ const BooksPage: React.FC = () => {
     setSearchQuery('');
     setCategoryFilter('All');
     setRatingFilter('All');
+    setSortBy('newest');
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <main className="flex-grow py-8">
+          <div className="container mx-auto px-4">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold mb-2">Browse Books</h1>
+              <p className="text-gray-600">Discover books to enhance your skills and knowledge</p>
+            </div>
+            <div className="text-center py-12">
+              <p className="text-gray-500">Loading books...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
   
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
       <main className="flex-grow py-8">
         <div className="container mx-auto px-4">
           <div className="mb-8">
@@ -183,23 +194,31 @@ const BooksPage: React.FC = () => {
                 <p className="text-gray-600">
                   Showing <span className="font-medium">{filteredBooks.length}</span> of {allBooks.length} books
                 </p>
-                <Select defaultValue="newest">
+                <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Sort By" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="oldest">Oldest First</SelectItem>
-                    <SelectItem value="rating">Highest Rated</SelectItem>
                     <SelectItem value="title">Title (A-Z)</SelectItem>
+                    <SelectItem value="rating">Highest Rated</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
               {filteredBooks.length === 0 ? (
                 <div className="text-center py-12">
-                  <h3 className="text-lg font-medium mb-2">No books found</h3>
-                  <p className="text-gray-500">Try adjusting your filters or search query</p>
+                  {allBooks.length === 0 ? (
+                    <>
+                      <h3 className="text-lg font-medium mb-2">No books available</h3>
+                      <p className="text-gray-500">The library is empty. Add some books to get started!</p>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="text-lg font-medium mb-2">No books found</h3>
+                      <p className="text-gray-500">Try adjusting your filters or search query</p>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -212,7 +231,6 @@ const BooksPage: React.FC = () => {
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 };

@@ -17,14 +17,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { User } from './UserTable';
+
+interface UserFormData {
+  id?: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'member';
+  status: 'active' | 'inactive';
+  firstName?: string;
+  lastName?: string;
+  password?: string;
+}
 
 interface UserFormProps {
-  user?: Partial<User>;
+  user?: Partial<UserFormData>;
   onSubmit: (data: any) => void;
   onCancel: () => void;
   isLoading?: boolean;
   includeSubscription?: boolean;
+  includePassword?: boolean;
 }
 
 const UserForm: React.FC<UserFormProps> = ({
@@ -33,13 +44,17 @@ const UserForm: React.FC<UserFormProps> = ({
   onCancel,
   isLoading = false,
   includeSubscription = false,
+  includePassword = false,
 }) => {
   const [formData, setFormData] = React.useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
     name: user?.name || '',
     email: user?.email || '',
     role: user?.role || 'member',
     status: user?.status || 'active',
-    subscription: user?.subscription?.plan || '',
+    password: '',
+    subscription: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,28 +80,54 @@ const UserForm: React.FC<UserFormProps> = ({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="firstName">First Name</Label>
               <Input
-                id="name"
-                name="name"
-                value={formData.name}
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
                 onChange={handleChange}
                 required
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="lastName">Last Name</Label>
               <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
                 onChange={handleChange}
                 required
               />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {includePassword && (
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                required={!user}
+                placeholder={user ? "Leave blank to keep current password" : "Enter password"}
+              />
+            </div>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">

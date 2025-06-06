@@ -1,8 +1,6 @@
 
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { Book } from '@/components/BookCard';
 import { UserBook, ReadingStatus } from '@/models/UserBook';
 import { Badge } from '@/components/ui/badge';
@@ -15,24 +13,7 @@ import { Calendar, Clock, Star, BookOpen, ArrowLeft } from 'lucide-react';
 import { toast } from "sonner";
 
 // Sample data
-const allBooks: Book[] = [
-  {
-    id: '1',
-    title: 'Atomic Habits',
-    author: 'James Clear',
-    coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80',
-    categories: ['Self-Help', 'Productivity'],
-    rating: 5
-  },
-  {
-    id: '2',
-    title: 'Deep Work',
-    author: 'Cal Newport',
-    coverImage: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80',
-    categories: ['Productivity', 'Business'],
-    rating: 4
-  },
-];
+const allBooks: Book[] = [];
 
 const userBooks: UserBook[] = [
   { 
@@ -115,7 +96,6 @@ const BookReviewPage: React.FC = () => {
   if (!book) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar />
         <main className="flex-grow py-8">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-3xl font-bold mb-4">Book Not Found</h1>
@@ -125,14 +105,12 @@ const BookReviewPage: React.FC = () => {
             </Button>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
       <main className="flex-grow py-8">
         <div className="container mx-auto px-4">
           <Link to={`/books/${id}`} className="inline-flex items-center gap-2 text-gray-600 hover:text-bookclub-primary mb-6">
@@ -345,7 +323,6 @@ const BookReviewPage: React.FC = () => {
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 };
