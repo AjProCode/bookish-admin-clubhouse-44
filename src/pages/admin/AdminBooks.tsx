@@ -213,7 +213,10 @@ const AdminBooks: React.FC = () => {
           </DialogDescription>
           {currentBook && (
             <BookForm 
-              book={currentBook}
+              book={{
+                ...currentBook,
+                description: currentBook.description || ''
+              }}
               onSubmit={handleUpdateBook}
               onCancel={() => setIsEditDialogOpen(false)}
               isLoading={isLoading}

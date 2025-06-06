@@ -28,10 +28,10 @@ const FeaturedBooks: React.FC = () => {
             id: book.id,
             title: book.title,
             author: book.author,
-            description: book.description || '',
-            coverImage: book.coverimage || '',
-            categories: book.categories || [],
-            rating: book.rating || 0,
+            description: book.description,
+            coverimage: book.coverimage,
+            categories: book.categories,
+            rating: book.rating,
           }));
           
           setFeaturedBooks(formattedBooks);

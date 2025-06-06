@@ -38,7 +38,7 @@ const BookForm: React.FC<BookFormProps> = ({
   const [formData, setFormData] = useState({
     title: book?.title || '',
     author: book?.author || '',
-    coverImage: book?.coverImage || '',
+    coverImage: book?.coverimage || '',
     description: book?.description || '',
     rating: book?.rating?.toString() || '0',
     categories: book?.categories?.join(', ') || '',
