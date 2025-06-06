@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,7 +67,7 @@ const GoogleBooksIntegration: React.FC<GoogleBooksIntegrationProps> = ({ onBookA
         title: book.volumeInfo.title,
         author: book.volumeInfo.authors ? book.volumeInfo.authors.join(', ') : 'Unknown',
         description: book.volumeInfo.description || '',
-        coverimage: book.volumeInfo.imageLinks?.thumbnail || book.volumeInfo.imageLinks?.smallThumbnail || '',
+        coverImage: book.volumeInfo.imageLinks?.thumbnail || book.volumeInfo.imageLinks?.smallThumbnail || '',
         categories: book.volumeInfo.categories || [],
         rating: book.volumeInfo.averageRating || 0
       };
@@ -92,11 +93,11 @@ const GoogleBooksIntegration: React.FC<GoogleBooksIntegrationProps> = ({ onBookA
         onBookAdded();
       }
       
-    } catch (error: any) {
-      console.error('Error adding book:', error?.message || error);
+    } catch (error) {
+      console.error('Error adding book:', error);
       toast({
         title: 'Failed to Add Book',
-        description: error?.message || 'There was an error adding the book to your library',
+        description: 'There was an error adding the book to your library',
         variant: 'destructive'
       });
     } finally {

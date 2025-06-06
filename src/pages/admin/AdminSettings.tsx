@@ -1,178 +1,327 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import AdminHeader from '@/components/admin/AdminHeader';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 const AdminSettings: React.FC = () => {
-  const [settings, setSettings] = useState({
-    siteName: 'Skillbag Books',
-    registrationEnabled: true,
-    emailNotifications: true,
-    maintenanceMode: false,
-    maxBooksPerUser: '10',
-    subscriptionRequired: false,
+  const [isLoading, setIsLoading] = useState(false);
+  const [generalSettings, setGeneralSettings] = useState({
+    siteName: 'SkillBag Book Club',
+    siteDescription: 'A community of book lovers sharing knowledge and skills through reading.',
+    contactEmail: 'contact@skillbagbooks.com',
+    enableRegistration: true,
+    requireApproval: false,
+  });
+  
+  const [emailSettings, setEmailSettings] = useState({
+    smtpHost: '',
+    smtpPort: '',
+    smtpUsername: '',
+    smtpPassword: '',
+    fromEmail: '',
   });
 
-  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    const checkAdminSession = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', Number(sessionData.session.user.id))
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          navigate('/login'); // Redirect to login if profile fetch fails
+          return;
+        }
+
+        if (profileData?.role !== 'admin') {
+          navigate('/login'); // Redirect if not an admin
+        }
+      } else {
+        navigate('/login'); // Redirect if no session
+      }
+    };
+
+    checkAdminSession();
+  }, [navigate]);
+
+  const handleGeneralSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setSettings(prev => ({ ...prev, [name]: value }));
+    setGeneralSettings(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
-
-  const handleSwitchChange = (name: string, checked: boolean) => {
-    setSettings(prev => ({ ...prev, [name]: checked }));
+  
+  const handleEmailSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setEmailSettings(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
-
-  const handleSave = async () => {
+  
+  const handleSwitchChange = (name: string, checked: boolean, settingsType: 'general' | 'email') => {
+    if (settingsType === 'general') {
+      setGeneralSettings(prev => ({
+        ...prev,
+        [name]: checked
+      }));
+    } else {
+      setEmailSettings(prev => ({
+        ...prev,
+        [name]: checked
+      }));
+    }
+  };
+  
+  const handleSaveSettings = (settingsType: 'general' | 'email') => {
     setIsLoading(true);
     
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    // Simulate API call delay
+    setTimeout(() => {
+      setIsLoading(false);
       
       toast({
-        title: "Settings saved",
-        description: "Your settings have been updated successfully.",
+        title: "Settings Saved",
+        description: `Your ${settingsType} settings have been updated.`,
       });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save settings. Please try again.",
-        variant: "destructive"
-      });
-    }
-    
-    setIsLoading(false);
+    }, 1000);
   };
-
+  
   return (
     <div className="flex-1 flex flex-col">
+      <AdminHeader title="Settings" />
+      
       <div className="p-6 space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold">Settings</h2>
-          <p className="text-gray-600">Manage your application settings</p>
-        </div>
-
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>General Settings</CardTitle>
-              <CardDescription>
-                Basic configuration for your book club
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="siteName">Site Name</Label>
-                <Input
-                  id="siteName"
-                  name="siteName"
-                  value={settings.siteName}
-                  onChange={handleInputChange}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="maxBooksPerUser">Max Books Per User</Label>
-                <Input
-                  id="maxBooksPerUser"
-                  name="maxBooksPerUser"
-                  type="number"
-                  value={settings.maxBooksPerUser}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>
-                Control user registration and access
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>User Registration</Label>
-                  <p className="text-sm text-gray-500">
-                    Allow new users to register
-                  </p>
+        <Tabs defaultValue="general">
+          <TabsList className="mb-6">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="email">Email</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="general" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>General Settings</CardTitle>
+                <CardDescription>
+                  Configure the basic settings for your book club.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="siteName">Site Name</Label>
+                  <Input
+                    id="siteName"
+                    name="siteName"
+                    value={generalSettings.siteName}
+                    onChange={handleGeneralSettingsChange}
+                  />
                 </div>
-                <Switch
-                  checked={settings.registrationEnabled}
-                  onCheckedChange={(checked) => handleSwitchChange('registrationEnabled', checked)}
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Subscription Required</Label>
-                  <p className="text-sm text-gray-500">
-                    Require active subscription for book access
-                  </p>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="siteDescription">Site Description</Label>
+                  <Textarea
+                    id="siteDescription"
+                    name="siteDescription"
+                    value={generalSettings.siteDescription}
+                    onChange={handleGeneralSettingsChange}
+                    rows={3}
+                  />
                 </div>
-                <Switch
-                  checked={settings.subscriptionRequired}
-                  onCheckedChange={(checked) => handleSwitchChange('subscriptionRequired', checked)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>System Settings</CardTitle>
-              <CardDescription>
-                Application behavior and notifications
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Email Notifications</Label>
-                  <p className="text-sm text-gray-500">
-                    Send email notifications to users
-                  </p>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="contactEmail">Contact Email</Label>
+                  <Input
+                    id="contactEmail"
+                    name="contactEmail"
+                    type="email"
+                    value={generalSettings.contactEmail}
+                    onChange={handleGeneralSettingsChange}
+                  />
                 </div>
-                <Switch
-                  checked={settings.emailNotifications}
-                  onCheckedChange={(checked) => handleSwitchChange('emailNotifications', checked)}
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Maintenance Mode</Label>
-                  <p className="text-sm text-gray-500">
-                    Put the site in maintenance mode
-                  </p>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="enableRegistration">Allow User Registration</Label>
+                      <p className="text-sm text-gray-500">Enable or disable user registrations on the site</p>
+                    </div>
+                    <Switch
+                      id="enableRegistration"
+                      checked={generalSettings.enableRegistration}
+                      onCheckedChange={(checked) => 
+                        handleSwitchChange('enableRegistration', checked, 'general')
+                      }
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="requireApproval">Require Admin Approval</Label>
+                      <p className="text-sm text-gray-500">New users require admin approval before joining</p>
+                    </div>
+                    <Switch
+                      id="requireApproval"
+                      checked={generalSettings.requireApproval}
+                      onCheckedChange={(checked) => 
+                        handleSwitchChange('requireApproval', checked, 'general')
+                      }
+                    />
+                  </div>
                 </div>
-                <Switch
-                  checked={settings.maintenanceMode}
-                  onCheckedChange={(checked) => handleSwitchChange('maintenanceMode', checked)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save Settings'}
-            </Button>
-          </div>
-        </div>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  onClick={() => handleSaveSettings('general')}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="email" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Email Settings</CardTitle>
+                <CardDescription>
+                  Configure email notifications and templates.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="smtpHost">SMTP Host</Label>
+                  <Input
+                    id="smtpHost"
+                    name="smtpHost"
+                    value={emailSettings.smtpHost}
+                    onChange={handleEmailSettingsChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="smtpPort">SMTP Port</Label>
+                  <Input
+                    id="smtpPort"
+                    name="smtpPort"
+                    value={emailSettings.smtpPort}
+                    onChange={handleEmailSettingsChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="smtpUsername">SMTP Username</Label>
+                  <Input
+                    id="smtpUsername"
+                    name="smtpUsername"
+                    value={emailSettings.smtpUsername}
+                    onChange={handleEmailSettingsChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="smtpPassword">SMTP Password</Label>
+                  <Input
+                    id="smtpPassword"
+                    name="smtpPassword"
+                    type="password"
+                    value={emailSettings.smtpPassword}
+                    onChange={handleEmailSettingsChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="fromEmail">From Email</Label>
+                  <Input
+                    id="fromEmail"
+                    name="fromEmail"
+                    type="email"
+                    value={emailSettings.fromEmail}
+                    onChange={handleEmailSettingsChange}
+                  />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  onClick={() => handleSaveSettings('email')}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="advanced" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Advanced Settings</CardTitle>
+                <CardDescription>
+                  Configure advanced settings for your book club.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-amber-600 mb-4">⚠️ These settings are for advanced users only.</p>
+                  
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold mb-2">Database Management</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button variant="outline">Export Data</Button>
+                      <Button variant="outline">Import Data</Button>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold mb-2">System Maintenance</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button variant="outline">Clear Cache</Button>
+                      <Button variant="outline">System Logs</Button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Danger Zone</h3>
+                    <Card className="border-red-200">
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-semibold">Reset Application</h4>
+                            <p className="text-sm text-gray-500">Reset all settings to default</p>
+                          </div>
+                          <Button variant="destructive">Reset</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

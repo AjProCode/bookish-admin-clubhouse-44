@@ -1,7 +1,8 @@
 {
   "files": [],
   "references": [
-    { "path": "./tsconfig.app.json" }
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
   ],
   "compilerOptions": {
     "target": "ESNext",
@@ -30,13 +31,13 @@
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
     "isolatedModules": true,
+    "noEmit": true,
     "useDefineForClassFields": true,
     "typeRoots": ["./node_modules/@types"],
     "composite": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true
-    // "noEmit": true, // Removed or commented out to allow emit
   },
   "include": ["src"],
   "exclude": ["node_modules"]
