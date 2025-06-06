@@ -102,8 +102,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             }
             
-            setUserProfile(profile);
-            setIsAdmin(profile?.role === 'admin');
+            if (profile) {
+              const formattedProfile: UserProfile = {
+                id: profile.id,
+                user_id: profile.user_id || session.user.id,
+                email: profile.email || session.user.email || '',
+                first_name: profile.first_name || '',
+                last_name: profile.last_name || '',
+                name: profile.name || 'User',
+                role: profile.role || 'member',
+                status: profile.status || 'active',
+                books_read: profile.books_read || 0,
+                join_date: profile.join_date || new Date().toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                })
+              };
+              
+              setUserProfile(formattedProfile);
+              setIsAdmin(formattedProfile.role === 'admin');
+            }
           } catch (error) {
             console.error('Error in auth state change:', error);
           }
