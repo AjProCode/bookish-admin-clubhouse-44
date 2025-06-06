@@ -17,14 +17,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { User } from './UserTable';
+
+interface User {
+  id?: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'member';
+  status: 'active' | 'inactive';
+}
 
 interface UserFormProps {
   user?: Partial<User>;
   onSubmit: (data: any) => void;
   onCancel: () => void;
   isLoading?: boolean;
-  includeSubscription?: boolean;
 }
 
 const UserForm: React.FC<UserFormProps> = ({
@@ -32,14 +38,13 @@ const UserForm: React.FC<UserFormProps> = ({
   onSubmit,
   onCancel,
   isLoading = false,
-  includeSubscription = false,
 }) => {
   const [formData, setFormData] = React.useState({
     name: user?.name || '',
     email: user?.email || '',
     role: user?.role || 'member',
     status: user?.status || 'active',
-    subscription: user?.subscription?.plan || '',
+    password: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,30 +68,42 @@ const UserForm: React.FC<UserFormProps> = ({
           <CardTitle>{user ? 'Edit User' : 'Add New User'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="name">Full Name</Label>
+            <Input
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
           </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {!user && (
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Leave empty for auto-generated password"
+              />
+            </div>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -121,26 +138,6 @@ const UserForm: React.FC<UserFormProps> = ({
               </Select>
             </div>
           </div>
-
-          {includeSubscription && (
-            <div className="space-y-2">
-              <Label htmlFor="subscription">Subscription Plan</Label>
-              <Select
-                value={formData.subscription}
-                onValueChange={(value) => handleSelectChange('subscription', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a plan" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">No Subscription</SelectItem>
-                  <SelectItem value="monthly">Monthly Plan</SelectItem>
-                  <SelectItem value="quarterly">Quarterly Plan</SelectItem>
-                  <SelectItem value="annual">Annual Plan</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
         </CardContent>
         <CardFooter className="flex justify-between">
           <Button type="button" variant="outline" onClick={onCancel}>

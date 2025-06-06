@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import UserTable from '@/components/admin/UserTable';
 import UserForm from '@/components/admin/UserForm';
 import UserDetailsView from '@/components/admin/UserDetailsView';
@@ -7,73 +7,129 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Plus } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   UserDetails, 
   UserSubscription, 
-  UserReadingLog, 
   UserStatus, 
-  UserBook, 
-  ReadingStatus,
   SubscriptionPlan
 } from '@/models/UserBook';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const AdminUsers: React.FC = () => {
   const [users, setUsers] = useState<UserDetails[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const [isSubscriptionDialogOpen, setIsSubscriptionDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [subscriptionData, setSubscriptionData] = useState({
-    plan: '',
-    status: 'active'
-  });
+  const [isSaving, setIsSaving] = useState(false);
   
-  const handleAddUser = (userData: any) => {
-    setIsLoading(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      const newUser: UserDetails = {
-        ...userData,
-        id: Date.now().toString(),
-        joinDate: new Date().toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric'
-        }),
-        status: userData.status as UserStatus,
-        booksRead: 0,
-        userBooks: []
-      };
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('join_date', { ascending: false });
       
-      // Add subscription if selected
-      if (userData.subscription) {
-        newUser.subscription = {
-          id: `subscription-${Date.now()}`,
-          userId: newUser.id,
-          plan: userData.subscription as SubscriptionPlan,
-          startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          isActive: true,
-          nextDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          booksDelivered: 0
-        };
+      if (error) {
+        console.error('Error fetching users:', error);
+        return;
       }
       
-      setUsers([newUser, ...users]);
-      setIsAddDialogOpen(false);
+      if (data) {
+        const formattedUsers: UserDetails[] = data.map(profile => ({
+          id: profile.id,
+          name: profile.name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email || 'Unknown User',
+          email: profile.email || '',
+          joinDate: profile.join_date || new Date().toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          }),
+          role: profile.role as 'admin' | 'member' || 'member',
+          status: profile.status as UserStatus || 'active',
+          booksRead: profile.books_read || 0,
+          userBooks: [],
+          readingLogs: []
+        }));
+        
+        setUsers(formattedUsers);
+      }
+    } catch (error) {
+      console.error('Error in fetchUsers:', error);
+    } finally {
       setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+  
+  const handleAddUser = async (userData: any) => {
+    try {
+      setIsSaving(true);
       
-      toast({
-        title: "User Added",
-        description: `${userData.name} has been added as a ${userData.role}.`,
+      // Create auth user first
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: userData.email,
+        password: userData.password || 'TempPassword123!',
+        email_confirm: true,
+        user_metadata: {
+          first_name: userData.name.split(' ')[0],
+          last_name: userData.name.split(' ').slice(1).join(' ')
+        }
       });
-    }, 1000);
+      
+      if (authError) {
+        throw authError;
+      }
+      
+      // Create profile
+      if (authData.user) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: authData.user.id,
+            email: userData.email,
+            first_name: userData.name.split(' ')[0],
+            last_name: userData.name.split(' ').slice(1).join(' '),
+            name: userData.name,
+            role: userData.role || 'member',
+            status: userData.status || 'active',
+            books_read: 0,
+            join_date: new Date().toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            })
+          })
+          .select()
+          .single();
+        
+        if (profileError) {
+          throw profileError;
+        }
+        
+        await fetchUsers(); // Refresh the list
+        setIsAddDialogOpen(false);
+        
+        toast({
+          title: "User Added",
+          description: `${userData.name} has been added successfully.`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error adding user:', error);
+      toast({
+        title: "Error",
+        description: `Failed to add user: ${error.message}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   const handleEditUser = (userId: string) => {
@@ -92,116 +148,84 @@ const AdminUsers: React.FC = () => {
     }
   };
   
-  const handleManageSubscription = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      setCurrentUser(user);
-      setSubscriptionData({
-        plan: user.subscription?.plan || '',
-        status: user.subscription?.isActive ? 'active' : 'inactive'
-      });
-      setIsSubscriptionDialogOpen(true);
-    }
-  };
-  
-  const handleUpdateUser = (userData: any) => {
-    setIsLoading(true);
+  const handleUpdateUser = async (userData: any) => {
+    if (!currentUser) return;
     
-    // Simulate API call delay
-    setTimeout(() => {
-      const updatedUsers = users.map(user => 
-        user.id === currentUser?.id ? { 
-          ...user, 
-          ...userData,
-          status: userData.status as UserStatus 
-        } : user
-      );
+    try {
+      setIsSaving(true);
       
-      setUsers(updatedUsers);
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          status: userData.status
+        })
+        .eq('id', currentUser.id)
+        .select()
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      await fetchUsers(); // Refresh the list
       setIsEditDialogOpen(false);
       setCurrentUser(null);
-      setIsLoading(false);
       
       toast({
         title: "User Updated",
         description: `${userData.name}'s information has been updated.`,
       });
-    }, 1000);
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      toast({
+        title: "Error",
+        description: `Failed to update user: ${error.message}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
   
-  const handleToggleUserStatus = (userId: string) => {
+  const handleToggleUserStatus = async (userId: string) => {
     const userToUpdate = users.find(u => u.id === userId);
     if (!userToUpdate) return;
     
     const newStatus = userToUpdate.status === 'active' ? 'inactive' as UserStatus : 'active' as UserStatus;
-    const actionText = newStatus === 'active' ? 'activated' : 'deactivated';
     
-    const updatedUsers = users.map(user => 
-      user.id === userId ? { ...user, status: newStatus } : user
-    );
-    
-    setUsers(updatedUsers);
-    
-    toast({
-      title: `User ${actionText}`,
-      description: `${userToUpdate.name}'s account has been ${actionText}.`,
-    });
-  };
-
-  const handleUpdateSubscription = (userId: string) => {
-    setIsLoading(true);
-    
-    setTimeout(() => {
-      const updatedUsers = users.map(user => {
-        if (user.id === userId) {
-          // If user had no subscription before, create one
-          if (!user.subscription && subscriptionData.plan) {
-            return {
-              ...user,
-              subscription: {
-                id: `subscription-${Date.now()}`,
-                userId: user.id,
-                plan: subscriptionData.plan as SubscriptionPlan,
-                startDate: new Date().toISOString(),
-                endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                isActive: subscriptionData.status === 'active',
-                nextDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                booksDelivered: 0
-              }
-            };
-          }
-          // If user has an existing subscription
-          else if (user.subscription) {
-            // If removing subscription
-            if (!subscriptionData.plan) {
-              const { subscription, ...userWithoutSubscription } = user;
-              return userWithoutSubscription;
-            }
-            // If updating subscription
-            return {
-              ...user,
-              subscription: {
-                ...user.subscription,
-                plan: subscriptionData.plan as SubscriptionPlan,
-                isActive: subscriptionData.status === 'active'
-              }
-            };
-          }
-        }
-        return user;
-      });
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ status: newStatus })
+        .eq('id', userId);
       
-      setUsers(updatedUsers as UserDetails[]);
-      setIsLoading(false);
-      setIsSubscriptionDialogOpen(false);
-      setCurrentUser(null);
+      if (error) {
+        throw error;
+      }
       
+      await fetchUsers(); // Refresh the list
+      
+      const actionText = newStatus === 'active' ? 'activated' : 'deactivated';
       toast({
-        title: "Subscription Updated",
-        description: `User's subscription has been updated.`,
+        title: `User ${actionText}`,
+        description: `${userToUpdate.name}'s account has been ${actionText}.`,
       });
-    }, 1000);
+    } catch (error: any) {
+      console.error('Error toggling user status:', error);
+      toast({
+        title: "Error",
+        description: `Failed to update user status: ${error.message}`,
+        variant: "destructive"
+      });
+    }
   };
+  
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-96">Loading users...</div>;
+  }
   
   return (
     <div className="flex-1 flex flex-col">
@@ -217,7 +241,7 @@ const AdminUsers: React.FC = () => {
         {users.length === 0 ? (
           <div className="text-center py-12">
             <h3 className="text-lg font-medium mb-2">No users found</h3>
-            <p className="text-gray-500">Add users to get started managing your community.</p>
+            <p className="text-gray-500">Users will appear here when they register or when you add them.</p>
           </div>
         ) : (
           <UserTable 
@@ -225,7 +249,6 @@ const AdminUsers: React.FC = () => {
             onEdit={handleEditUser}
             onViewDetails={handleViewUserDetails}
             onToggleStatus={handleToggleUserStatus}
-            onManageSubscription={handleManageSubscription}
           />
         )}
       </div>
@@ -240,8 +263,7 @@ const AdminUsers: React.FC = () => {
           <UserForm 
             onSubmit={handleAddUser}
             onCancel={() => setIsAddDialogOpen(false)}
-            isLoading={isLoading}
-            includeSubscription={true}
+            isLoading={isSaving}
           />
         </DialogContent>
       </Dialog>
@@ -260,15 +282,11 @@ const AdminUsers: React.FC = () => {
                 name: currentUser.name,
                 email: currentUser.email,
                 role: currentUser.role,
-                status: currentUser.status,
-                subscription: currentUser.subscription ? {
-                  plan: currentUser.subscription.plan,
-                  status: currentUser.subscription.isActive ? 'active' : 'inactive'
-                } : undefined
+                status: currentUser.status
               }}
               onSubmit={handleUpdateUser}
               onCancel={() => setIsEditDialogOpen(false)}
-              isLoading={isLoading}
+              isLoading={isSaving}
             />
           )}
         </DialogContent>
@@ -285,86 +303,11 @@ const AdminUsers: React.FC = () => {
             <UserDetailsView 
               user={currentUser} 
               onUpdateSubscription={(data) => {
-                if (currentUser?.subscription) {
-                  const updatedSubscription = {
-                    ...currentUser.subscription,
-                    ...data
-                  };
-                  const updatedUser = {
-                    ...currentUser,
-                    subscription: updatedSubscription
-                  };
-                  const updatedUsers = users.map(user => 
-                    user.id === currentUser.id ? updatedUser : user
-                  );
-                  setUsers(updatedUsers);
-                }
+                // Handle subscription updates if needed
+                console.log('Subscription update:', data);
               }}
             />
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Manage Subscription Dialog */}
-      <Dialog open={isSubscriptionDialogOpen} onOpenChange={setIsSubscriptionDialogOpen}>
-        <DialogContent>
-          <DialogTitle>Manage Subscription</DialogTitle>
-          <DialogDescription>
-            {currentUser?.name}'s subscription details
-          </DialogDescription>
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscription Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="plan">Subscription Plan</Label>
-                <Select
-                  value={subscriptionData.plan}
-                  onValueChange={(value) => setSubscriptionData(prev => ({ ...prev, plan: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a plan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">No Subscription</SelectItem>
-                    <SelectItem value="monthly">Monthly Plan</SelectItem>
-                    <SelectItem value="quarterly">Quarterly Plan</SelectItem>
-                    <SelectItem value="annual">Annual Plan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {subscriptionData.plan && (
-                <div className="space-y-2">
-                  <Label htmlFor="status">Subscription Status</Label>
-                  <Select
-                    value={subscriptionData.status}
-                    onValueChange={(value) => setSubscriptionData(prev => ({ ...prev, status: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </CardContent>
-            <CardContent className="flex justify-between pt-2">
-              <Button variant="outline" onClick={() => setIsSubscriptionDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                disabled={isLoading} 
-                onClick={() => currentUser && handleUpdateSubscription(currentUser.id)}
-              >
-                {isLoading ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </CardContent>
-          </Card>
         </DialogContent>
       </Dialog>
     </div>

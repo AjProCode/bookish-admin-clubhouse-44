@@ -8,6 +8,7 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AuthProvider } from "./contexts/AuthContext";
 
 // Public Pages
 import Index from "./pages/Index";
@@ -41,37 +42,39 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <DayPickerProvider initialProps={{}}>
-        <Router>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            {/* Public Routes - with Layout */}
-            <Route path="/" element={<AppLayout><Index /></AppLayout>} />
-            <Route path="/books" element={<AppLayout><BooksPage /></AppLayout>} />
-            <Route path="/books/:id" element={<AppLayout><BookDetail /></AppLayout>} />
-            <Route path="/bookshelf" element={<AppLayout><BookshelfPage /></AppLayout>} />
-            <Route path="/reading-log" element={<AppLayout><ReadingLogPage /></AppLayout>} />
-            <Route path="/book-review/:bookId" element={<AppLayout><BookReviewPage /></AppLayout>} />
-            
-            {/* Login page - with layout */}
-            <Route path="/login" element={<AppLayout><LoginPage /></AppLayout>} />
+    <AuthProvider>
+      <TooltipProvider>
+        <DayPickerProvider initialProps={{}}>
+          <Router>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              {/* Public Routes - with Layout */}
+              <Route path="/" element={<AppLayout><Index /></AppLayout>} />
+              <Route path="/books" element={<AppLayout><BooksPage /></AppLayout>} />
+              <Route path="/books/:id" element={<AppLayout><BookDetail /></AppLayout>} />
+              <Route path="/bookshelf" element={<AppLayout><BookshelfPage /></AppLayout>} />
+              <Route path="/reading-log" element={<AppLayout><ReadingLogPage /></AppLayout>} />
+              <Route path="/book-review/:bookId" element={<AppLayout><BookReviewPage /></AppLayout>} />
+              
+              {/* Login page - with layout */}
+              <Route path="/login" element={<AppLayout><LoginPage /></AppLayout>} />
 
-            {/* Admin Routes */}
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminDashboard />} />
-              <Route path="books" element={<AdminBooks />} />
-              <Route path="users" element={<AdminUsers />} />
-              <Route path="settings" element={<AdminSettings />} />
-            </Route>
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="books" element={<AdminBooks />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="settings" element={<AdminSettings />} />
+              </Route>
 
-            {/* Not Found Route */}
-            <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
-          </Routes>
-        </Router>
-      </DayPickerProvider>
-    </TooltipProvider>
+              {/* Not Found Route */}
+              <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
+            </Routes>
+          </Router>
+        </DayPickerProvider>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
