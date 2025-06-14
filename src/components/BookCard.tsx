@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
@@ -7,10 +8,10 @@ export interface Book {
   id: string;
   title: string;
   author: string;
-  coverImage: string;
-  categories: string[];
-  rating: number;
-  description?: string; // Added description property since it's used in multiple places
+  coverimage: string | null;
+  categories: string[] | null;
+  rating: number | null;
+  description: string | null;
 }
 
 interface BookCardProps {
@@ -23,9 +24,9 @@ const BookCard: React.FC<BookCardProps> = ({ book, showRating = true }) => {
     <Card className="h-full overflow-hidden">
       <Link to={`/books/${book.id}`}>
         <div className="relative pt-[60%] overflow-hidden">
-          {book.coverImage ? (
+          {book.coverimage ? (
             <img 
-              src={book.coverImage} 
+              src={book.coverimage} 
               alt={`${book.title} cover`}
               className="absolute top-0 left-0 w-full h-full object-cover book-cover"
             />
@@ -38,12 +39,12 @@ const BookCard: React.FC<BookCardProps> = ({ book, showRating = true }) => {
         <CardContent className="p-4">
           <h3 className="text-lg font-semibold line-clamp-1 mb-1">{book.title}</h3>
           <p className="text-sm text-gray-600 mb-2">{book.author}</p>
-          {showRating && (
+          {showRating && book.rating && (
             <div className="flex items-center mb-2">
               {[...Array(5)].map((_, i) => (
                 <svg 
                   key={i}
-                  className={`w-4 h-4 ${i < book.rating ? 'text-yellow-500' : 'text-gray-300'}`}
+                  className={`w-4 h-4 ${i < book.rating! ? 'text-yellow-500' : 'text-gray-300'}`}
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -53,10 +54,10 @@ const BookCard: React.FC<BookCardProps> = ({ book, showRating = true }) => {
             </div>
           )}
           <div className="flex flex-wrap gap-1">
-            {book.categories.slice(0, 2).map((category) => (
+            {book.categories && book.categories.slice(0, 2).map((category) => (
               <Badge key={category} variant="secondary" className="text-xs">{category}</Badge>
             ))}
-            {book.categories.length > 2 && (
+            {book.categories && book.categories.length > 2 && (
               <Badge variant="outline" className="text-xs">+{book.categories.length - 2}</Badge>
             )}
           </div>

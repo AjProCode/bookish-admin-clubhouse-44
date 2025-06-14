@@ -18,19 +18,24 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-interface User {
+interface UserFormData {
   id?: string;
   name: string;
   email: string;
   role: 'admin' | 'member';
   status: 'active' | 'inactive';
+  firstName?: string;
+  lastName?: string;
+  password?: string;
 }
 
 interface UserFormProps {
-  user?: Partial<User>;
+  user?: Partial<UserFormData>;
   onSubmit: (data: any) => void;
   onCancel: () => void;
   isLoading?: boolean;
+  includeSubscription?: boolean;
+  includePassword?: boolean;
 }
 
 const UserForm: React.FC<UserFormProps> = ({
@@ -38,13 +43,18 @@ const UserForm: React.FC<UserFormProps> = ({
   onSubmit,
   onCancel,
   isLoading = false,
+  includeSubscription = false,
+  includePassword = false,
 }) => {
   const [formData, setFormData] = React.useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
     name: user?.name || '',
     email: user?.email || '',
     role: user?.role || 'member',
     status: user?.status || 'active',
     password: '',
+    subscription: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,17 +78,30 @@ const UserForm: React.FC<UserFormProps> = ({
           <CardTitle>{user ? 'Edit User' : 'Add New User'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                required
+              />
+            </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -91,7 +114,7 @@ const UserForm: React.FC<UserFormProps> = ({
             />
           </div>
 
-          {!user && (
+          {includePassword && (
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -100,7 +123,8 @@ const UserForm: React.FC<UserFormProps> = ({
                 type="password"
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="Leave empty for auto-generated password"
+                required={!user}
+                placeholder={user ? "Leave blank to keep current password" : "Enter password"}
               />
             </div>
           )}
@@ -138,6 +162,26 @@ const UserForm: React.FC<UserFormProps> = ({
               </Select>
             </div>
           </div>
+
+          {includeSubscription && (
+            <div className="space-y-2">
+              <Label htmlFor="subscription">Subscription Plan</Label>
+              <Select
+                value={formData.subscription}
+                onValueChange={(value) => handleSelectChange('subscription', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Subscription</SelectItem>
+                  <SelectItem value="monthly">Monthly Plan</SelectItem>
+                  <SelectItem value="quarterly">Quarterly Plan</SelectItem>
+                  <SelectItem value="annual">Annual Plan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex justify-between">
           <Button type="button" variant="outline" onClick={onCancel}>

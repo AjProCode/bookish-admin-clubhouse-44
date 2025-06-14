@@ -125,9 +125,9 @@ const BookReviewPage: React.FC = () => {
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center">
                     <div className="w-40 h-56 mb-4 overflow-hidden rounded-md shadow-md">
-                      {book.coverImage ? (
+                      {book.coverimage ? (
                         <img 
-                          src={book.coverImage} 
+                          src={book.coverimage} 
                           alt={book.title} 
                           className="w-full h-full object-cover"
                         />
@@ -151,7 +151,7 @@ const BookReviewPage: React.FC = () => {
                     </div>
                     
                     <div className="flex flex-wrap gap-1 justify-center mb-4">
-                      {book.categories.map(category => (
+                      {book.categories && book.categories.map(category => (
                         <Badge key={category} variant="secondary" className="text-xs">
                           {category}
                         </Badge>

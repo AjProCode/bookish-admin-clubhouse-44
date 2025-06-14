@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
-import { Book } from '../BookCard';
+import { Book } from '@/components/BookCard';
 
 interface BookTableProps {
   books: Book[];
@@ -44,9 +44,9 @@ const BookTable: React.FC<BookTableProps> = ({ books, onEdit, onDelete }) => {
             <TableRow key={book.id}>
               <TableCell>
                 <div className="w-16 h-20 overflow-hidden rounded-md">
-                  {book.coverImage ? (
+                  {book.coverimage ? (
                     <img 
-                      src={book.coverImage} 
+                      src={book.coverimage} 
                       alt={`${book.title} cover`}
                       className="w-full h-full object-cover"
                     />
@@ -61,22 +61,22 @@ const BookTable: React.FC<BookTableProps> = ({ books, onEdit, onDelete }) => {
               <TableCell>{book.author}</TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1">
-                  {book.categories.slice(0, 2).map((category) => (
+                  {book.categories && book.categories.slice(0, 2).map((category) => (
                     <Badge key={category} variant="secondary" className="text-xs">
                       {category}
                     </Badge>
                   ))}
-                  {book.categories.length > 2 && (
+                  {book.categories && book.categories.length > 2 && (
                     <Badge variant="outline" className="text-xs">+{book.categories.length - 2}</Badge>
                   )}
                 </div>
               </TableCell>
               <TableCell>
                 <div className="flex">
-                  {[...Array(5)].map((_, i) => (
+                  {book.rating && [...Array(5)].map((_, i) => (
                     <svg 
                       key={i}
-                      className={`w-4 h-4 ${i < book.rating ? 'text-yellow-500' : 'text-gray-300'}`}
+                      className={`w-4 h-4 ${i < book.rating! ? 'text-yellow-500' : 'text-gray-300'}`}
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >

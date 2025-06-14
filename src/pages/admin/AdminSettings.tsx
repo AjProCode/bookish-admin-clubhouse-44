@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -10,134 +10,168 @@ import { toast } from '@/hooks/use-toast';
 
 const AdminSettings: React.FC = () => {
   const [settings, setSettings] = useState({
-    siteName: 'BookClub',
-    siteDescription: 'A platform for book lovers to discover and share great reads',
-    allowRegistration: true,
-    requireEmailVerification: false,
-    maxBooksPerUser: 50,
-    enableNotifications: true,
-    autoApproveUsers: false,
+    siteName: 'Skillbag Books',
+    registrationEnabled: true,
+    emailNotifications: true,
+    maintenanceMode: false,
+    maxBooksPerUser: '10',
+    subscriptionRequired: false,
   });
 
-  const handleSave = () => {
-    // Here you would typically save to database
-    toast({
-      title: "Settings Updated",
-      description: "Your settings have been saved successfully.",
-    });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSettings(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleInputChange = (field: string, value: string | boolean | number) => {
-    setSettings(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleSwitchChange = (name: string, checked: boolean) => {
+    setSettings(prev => ({ ...prev, [name]: checked }));
+  };
+
+  const handleSave = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast({
+        title: "Settings saved",
+        description: "Your settings have been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive"
+      });
+    }
+    
+    setIsLoading(false);
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="text-gray-600">Manage your application settings</p>
-      </div>
-      
-      <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Site Configuration</CardTitle>
-            <CardDescription>Basic site settings and information</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="siteName">Site Name</Label>
-              <Input
-                id="siteName"
-                value={settings.siteName}
-                onChange={(e) => handleInputChange('siteName', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="siteDescription">Site Description</Label>
-              <Input
-                id="siteDescription"
-                value={settings.siteDescription}
-                onChange={(e) => handleInputChange('siteDescription', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxBooks">Max Books Per User</Label>
-              <Input
-                id="maxBooks"
-                type="number"
-                value={settings.maxBooksPerUser.toString()}
-                onChange={(e) => handleInputChange('maxBooksPerUser', parseInt(e.target.value) || 0)}
-              />
-            </div>
-          </CardContent>
-        </Card>
+    <div className="flex-1 flex flex-col">
+      <div className="p-6 space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold">Settings</h2>
+          <p className="text-gray-600">Manage your application settings</p>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>User Management</CardTitle>
-            <CardDescription>Control user registration and access</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Allow New Registrations</Label>
-                <p className="text-sm text-gray-500">Allow new users to register for accounts</p>
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>General Settings</CardTitle>
+              <CardDescription>
+                Basic configuration for your book club
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="siteName">Site Name</Label>
+                <Input
+                  id="siteName"
+                  name="siteName"
+                  value={settings.siteName}
+                  onChange={handleInputChange}
+                />
               </div>
-              <Switch
-                checked={settings.allowRegistration}
-                onCheckedChange={(checked) => handleInputChange('allowRegistration', checked)}
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Require Email Verification</Label>
-                <p className="text-sm text-gray-500">Users must verify their email before accessing the site</p>
+              
+              <div className="space-y-2">
+                <Label htmlFor="maxBooksPerUser">Max Books Per User</Label>
+                <Input
+                  id="maxBooksPerUser"
+                  name="maxBooksPerUser"
+                  type="number"
+                  value={settings.maxBooksPerUser}
+                  onChange={handleInputChange}
+                />
               </div>
-              <Switch
-                checked={settings.requireEmailVerification}
-                onCheckedChange={(checked) => handleInputChange('requireEmailVerification', checked)}
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Auto-approve New Users</Label>
-                <p className="text-sm text-gray-500">Automatically approve new user registrations</p>
-              </div>
-              <Switch
-                checked={settings.autoApproveUsers}
-                onCheckedChange={(checked) => handleInputChange('autoApproveUsers', checked)}
-              />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-            <CardDescription>Configure notification settings</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Enable Notifications</Label>
-                <p className="text-sm text-gray-500">Send email notifications to users</p>
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>
+                Control user registration and access
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>User Registration</Label>
+                  <p className="text-sm text-gray-500">
+                    Allow new users to register
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.registrationEnabled}
+                  onCheckedChange={(checked) => handleSwitchChange('registrationEnabled', checked)}
+                />
               </div>
-              <Switch
-                checked={settings.enableNotifications}
-                onCheckedChange={(checked) => handleInputChange('enableNotifications', checked)}
-              />
-            </div>
-          </CardContent>
-        </Card>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Subscription Required</Label>
+                  <p className="text-sm text-gray-500">
+                    Require active subscription for book access
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.subscriptionRequired}
+                  onCheckedChange={(checked) => handleSwitchChange('subscriptionRequired', checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-        <div className="flex justify-end">
-          <Button onClick={handleSave}>Save Settings</Button>
+          <Card>
+            <CardHeader>
+              <CardTitle>System Settings</CardTitle>
+              <CardDescription>
+                Application behavior and notifications
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Email Notifications</Label>
+                  <p className="text-sm text-gray-500">
+                    Send email notifications to users
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.emailNotifications}
+                  onCheckedChange={(checked) => handleSwitchChange('emailNotifications', checked)}
+                />
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Maintenance Mode</Label>
+                  <p className="text-sm text-gray-500">
+                    Put the site in maintenance mode
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.maintenanceMode}
+                  onCheckedChange={(checked) => handleSwitchChange('maintenanceMode', checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button onClick={handleSave} disabled={isLoading}>
+              {isLoading ? 'Saving...' : 'Save Settings'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

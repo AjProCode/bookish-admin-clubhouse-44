@@ -8,7 +8,8 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import UserApprovalGuard from "@/components/UserApprovalGuard";
 
 // Public Pages
 import Index from "./pages/Index";
@@ -40,25 +41,32 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
   </>
 );
 
+// Protected layout that requires user approval
+const ProtectedLayout = ({ children }: { children: React.ReactNode }) => (
+  <UserApprovalGuard>
+    <AppLayout>{children}</AppLayout>
+  </UserApprovalGuard>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <DayPickerProvider initialProps={{}}>
+    <TooltipProvider>
+      <DayPickerProvider initialProps={{}}>
+        <AuthProvider>
           <Router>
             <Toaster />
             <Sonner />
             <Routes>
               {/* Public Routes - with Layout */}
               <Route path="/" element={<AppLayout><Index /></AppLayout>} />
-              <Route path="/books" element={<AppLayout><BooksPage /></AppLayout>} />
-              <Route path="/books/:id" element={<AppLayout><BookDetail /></AppLayout>} />
-              <Route path="/bookshelf" element={<AppLayout><BookshelfPage /></AppLayout>} />
-              <Route path="/reading-log" element={<AppLayout><ReadingLogPage /></AppLayout>} />
-              <Route path="/book-review/:bookId" element={<AppLayout><BookReviewPage /></AppLayout>} />
-              
-              {/* Login page - with layout */}
               <Route path="/login" element={<AppLayout><LoginPage /></AppLayout>} />
+              
+              {/* Protected Routes - require approval */}
+              <Route path="/books" element={<ProtectedLayout><BooksPage /></ProtectedLayout>} />
+              <Route path="/books/:id" element={<ProtectedLayout><BookDetail /></ProtectedLayout>} />
+              <Route path="/bookshelf" element={<ProtectedLayout><BookshelfPage /></ProtectedLayout>} />
+              <Route path="/reading-log" element={<ProtectedLayout><ReadingLogPage /></ProtectedLayout>} />
+              <Route path="/book-review/:bookId" element={<ProtectedLayout><BookReviewPage /></ProtectedLayout>} />
 
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminLayout />}>
@@ -72,9 +80,9 @@ const App = () => (
               <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
             </Routes>
           </Router>
-        </DayPickerProvider>
-      </TooltipProvider>
-    </AuthProvider>
+        </AuthProvider>
+      </DayPickerProvider>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 

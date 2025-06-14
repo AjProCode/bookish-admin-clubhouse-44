@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import BookCard, { Book } from '@/components/BookCard';
 import SearchBar from '@/components/SearchBar';
@@ -40,10 +41,10 @@ const BooksPage: React.FC = () => {
             id: book.id,
             title: book.title,
             author: book.author,
-            description: book.description || '',
-            coverImage: book.coverimage || '',
-            categories: book.categories || [],
-            rating: book.rating || 0,
+            description: book.description,
+            coverimage: book.coverimage,
+            categories: book.categories,
+            rating: book.rating,
           }));
           
           setAllBooks(formattedBooks);
@@ -59,7 +60,7 @@ const BooksPage: React.FC = () => {
   }, []);
 
   // Get all unique categories from the fetched books
-  const allCategories = Array.from(new Set(allBooks.flatMap(book => book.categories)));
+  const allCategories = Array.from(new Set(allBooks.flatMap(book => book.categories || [])));
 
   // Apply filters whenever books or filter values change
   useEffect(() => {
@@ -75,7 +76,7 @@ const BooksPage: React.FC = () => {
 
     // Category filter
     if (categoryFilter !== 'All') {
-      filtered = filtered.filter(book => book.categories.includes(categoryFilter));
+      filtered = filtered.filter(book => book.categories && book.categories.includes(categoryFilter));
     }
 
     // Rating filter
@@ -89,7 +90,7 @@ const BooksPage: React.FC = () => {
         filtered.sort((a, b) => a.title.localeCompare(b.title));
         break;
       case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating);
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       case 'newest':
       default:
@@ -155,7 +156,7 @@ const BooksPage: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="All">All Categories</SelectItem>
                     {allCategories.map(category => (
-                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                      <SelectItem key={category} value={category || ''}>{category}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

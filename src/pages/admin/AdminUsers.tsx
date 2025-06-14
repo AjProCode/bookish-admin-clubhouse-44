@@ -7,129 +7,101 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Plus } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { 
   UserDetails, 
-  UserSubscription, 
-  UserStatus, 
-  SubscriptionPlan
+  UserStatus
 } from '@/models/UserBook';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminUsers: React.FC = () => {
   const [users, setUsers] = useState<UserDetails[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserDetails | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('join_date', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching users:', error);
-        return;
-      }
-      
-      if (data) {
-        const formattedUsers: UserDetails[] = data.map(profile => ({
-          id: profile.id,
-          name: profile.name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email || 'Unknown User',
-          email: profile.email || '',
-          joinDate: profile.join_date || new Date().toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          }),
-          role: profile.role as 'admin' | 'member' || 'member',
-          status: profile.status as UserStatus || 'active',
-          booksRead: profile.books_read || 0,
-          userBooks: [],
-          readingLogs: []
-        }));
-        
-        setUsers(formattedUsers);
-      }
-    } catch (error) {
-      console.error('Error in fetchUsers:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
   
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('join_date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        return;
+      }
+
+      const formattedUsers: UserDetails[] = data.map(profile => ({
+        id: profile.id,
+        name: profile.name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown',
+        email: profile.email || '',
+        role: (profile.role === 'admin' ? 'admin' : 'member') as 'admin' | 'member',
+        status: profile.status as UserStatus || 'inactive',
+        joinDate: profile.join_date || new Date().toLocaleDateString(),
+        booksRead: profile.books_read || 0,
+        userBooks: []
+      }));
+
+      setUsers(formattedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
   
   const handleAddUser = async (userData: any) => {
+    setIsLoading(true);
+    
     try {
-      setIsSaving(true);
-      
       // Create auth user first
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: userData.email,
-        password: userData.password || 'TempPassword123!',
+        password: userData.password,
         email_confirm: true,
         user_metadata: {
-          first_name: userData.name.split(' ')[0],
-          last_name: userData.name.split(' ').slice(1).join(' ')
+          first_name: userData.firstName,
+          last_name: userData.lastName
         }
       });
-      
+
       if (authError) {
-        throw authError;
-      }
-      
-      // Create profile
-      if (authData.user) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: authData.user.id,
-            email: userData.email,
-            first_name: userData.name.split(' ')[0],
-            last_name: userData.name.split(' ').slice(1).join(' '),
-            name: userData.name,
-            role: userData.role || 'member',
-            status: userData.status || 'active',
-            books_read: 0,
-            join_date: new Date().toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric'
-            })
-          })
-          .select()
-          .single();
-        
-        if (profileError) {
-          throw profileError;
-        }
-        
-        await fetchUsers(); // Refresh the list
-        setIsAddDialogOpen(false);
-        
         toast({
-          title: "User Added",
-          description: `${userData.name} has been added successfully.`,
+          title: "Error creating user",
+          description: authError.message,
+          variant: "destructive"
         });
+        setIsLoading(false);
+        return;
       }
-    } catch (error: any) {
+
+      // Profile will be created automatically by the trigger
+      await fetchUsers();
+      setIsAddDialogOpen(false);
+      
+      toast({
+        title: "User Added",
+        description: `${userData.firstName} ${userData.lastName} has been added successfully.`,
+      });
+    } catch (error) {
       console.error('Error adding user:', error);
       toast({
         title: "Error",
-        description: `Failed to add user: ${error.message}`,
+        description: "Failed to create user",
         variant: "destructive"
       });
-    } finally {
-      setIsSaving(false);
     }
+    
+    setIsLoading(false);
   };
   
   const handleEditUser = (userId: string) => {
@@ -147,47 +119,95 @@ const AdminUsers: React.FC = () => {
       setIsDetailsDialogOpen(true);
     }
   };
+
+  const handleChangePassword = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setCurrentUser(user);
+      setNewPassword('');
+      setIsPasswordDialogOpen(true);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!currentUser || !newPassword) return;
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.admin.updateUserById(
+        currentUser.id,
+        { password: newPassword }
+      );
+
+      if (error) {
+        toast({
+          title: "Error updating password",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Password updated",
+          description: `Password updated successfully for ${currentUser.name}`,
+        });
+        setIsPasswordDialogOpen(false);
+        setNewPassword('');
+      }
+    } catch (error) {
+      console.error('Error updating password:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update password",
+        variant: "destructive"
+      });
+    }
+    setIsLoading(false);
+  };
   
   const handleUpdateUser = async (userData: any) => {
     if (!currentUser) return;
+
+    setIsLoading(true);
     
     try {
-      setIsSaving(true);
-      
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({
-          name: userData.name,
+          name: `${userData.firstName} ${userData.lastName}`,
           email: userData.email,
           role: userData.role,
-          status: userData.status
+          status: userData.status,
+          first_name: userData.firstName,
+          last_name: userData.lastName
         })
-        .eq('id', currentUser.id)
-        .select()
-        .single();
-      
+        .eq('id', currentUser.id);
+
       if (error) {
-        throw error;
+        toast({
+          title: "Error updating user",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        await fetchUsers();
+        setIsEditDialogOpen(false);
+        setCurrentUser(null);
+        
+        toast({
+          title: "User Updated",
+          description: `${userData.firstName} ${userData.lastName}'s information has been updated.`,
+        });
       }
-      
-      await fetchUsers(); // Refresh the list
-      setIsEditDialogOpen(false);
-      setCurrentUser(null);
-      
-      toast({
-        title: "User Updated",
-        description: `${userData.name}'s information has been updated.`,
-      });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating user:', error);
       toast({
         title: "Error",
-        description: `Failed to update user: ${error.message}`,
+        description: "Failed to update user",
         variant: "destructive"
       });
-    } finally {
-      setIsSaving(false);
     }
+    
+    setIsLoading(false);
   };
   
   const handleToggleUserStatus = async (userId: string) => {
@@ -201,31 +221,34 @@ const AdminUsers: React.FC = () => {
         .from('profiles')
         .update({ status: newStatus })
         .eq('id', userId);
-      
+
       if (error) {
-        throw error;
+        toast({
+          title: "Error updating status",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        await fetchUsers();
+        const actionText = newStatus === 'active' ? 'activated' : 'deactivated';
+        
+        toast({
+          title: `User ${actionText}`,
+          description: `${userToUpdate.name}'s account has been ${actionText}.`,
+        });
       }
-      
-      await fetchUsers(); // Refresh the list
-      
-      const actionText = newStatus === 'active' ? 'activated' : 'deactivated';
-      toast({
-        title: `User ${actionText}`,
-        description: `${userToUpdate.name}'s account has been ${actionText}.`,
-      });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error toggling user status:', error);
-      toast({
-        title: "Error",
-        description: `Failed to update user status: ${error.message}`,
-        variant: "destructive"
-      });
     }
   };
-  
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-96">Loading users...</div>;
-  }
+
+  const handleManageSubscription = (userId: string) => {
+    // Implementation for subscription management
+    toast({
+      title: "Feature Coming Soon",
+      description: "Subscription management will be available soon.",
+    });
+  };
   
   return (
     <div className="flex-1 flex flex-col">
@@ -241,7 +264,7 @@ const AdminUsers: React.FC = () => {
         {users.length === 0 ? (
           <div className="text-center py-12">
             <h3 className="text-lg font-medium mb-2">No users found</h3>
-            <p className="text-gray-500">Users will appear here when they register or when you add them.</p>
+            <p className="text-gray-500">Users will appear here when they register or are added by admins.</p>
           </div>
         ) : (
           <UserTable 
@@ -249,6 +272,8 @@ const AdminUsers: React.FC = () => {
             onEdit={handleEditUser}
             onViewDetails={handleViewUserDetails}
             onToggleStatus={handleToggleUserStatus}
+            onManageSubscription={handleManageSubscription}
+            onChangePassword={handleChangePassword}
           />
         )}
       </div>
@@ -263,7 +288,8 @@ const AdminUsers: React.FC = () => {
           <UserForm 
             onSubmit={handleAddUser}
             onCancel={() => setIsAddDialogOpen(false)}
-            isLoading={isSaving}
+            isLoading={isLoading}
+            includePassword={true}
           />
         </DialogContent>
       </Dialog>
@@ -282,11 +308,13 @@ const AdminUsers: React.FC = () => {
                 name: currentUser.name,
                 email: currentUser.email,
                 role: currentUser.role,
-                status: currentUser.status
+                status: currentUser.status,
+                firstName: currentUser.name.split(' ')[0] || '',
+                lastName: currentUser.name.split(' ').slice(1).join(' ') || ''
               }}
               onSubmit={handleUpdateUser}
               onCancel={() => setIsEditDialogOpen(false)}
-              isLoading={isSaving}
+              isLoading={isLoading}
             />
           )}
         </DialogContent>
@@ -302,12 +330,47 @@ const AdminUsers: React.FC = () => {
           {currentUser && (
             <UserDetailsView 
               user={currentUser} 
-              onUpdateSubscription={(data) => {
-                // Handle subscription updates if needed
-                console.log('Subscription update:', data);
-              }}
+              onUpdateSubscription={() => {}}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Password Dialog */}
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent>
+          <DialogTitle>Change Password</DialogTitle>
+          <DialogDescription>
+            Update password for {currentUser?.name}
+          </DialogDescription>
+          <Card>
+            <CardHeader>
+              <CardTitle>New Password</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">New Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                />
+              </div>
+            </CardContent>
+            <CardContent className="flex justify-between pt-2">
+              <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                disabled={isLoading || !newPassword} 
+                onClick={handleUpdatePassword}
+              >
+                {isLoading ? 'Updating...' : 'Update Password'}
+              </Button>
+            </CardContent>
+          </Card>
         </DialogContent>
       </Dialog>
     </div>
