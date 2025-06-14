@@ -24,20 +24,29 @@ const Navbar: React.FC = () => {
     <nav className="bg-white shadow-sm border-b">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          <Link to="/" className="text-xl font-bold text-bookclub-primary">
+          <Link to="/" className="text-2xl font-bold text-blue-600 hover:text-blue-700">
             BookClub
           </Link>
           
-          <div className="hidden md:flex space-x-6">
-            <Link to="/books" className="text-gray-700 hover:text-bookclub-primary">
+          <div className="hidden md:flex space-x-8">
+            <Link 
+              to="/books" 
+              className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
+            >
               Books
             </Link>
             {user && (
               <>
-                <Link to="/bookshelf" className="text-gray-700 hover:text-bookclub-primary">
+                <Link 
+                  to="/bookshelf" 
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
+                >
                   My Bookshelf
                 </Link>
-                <Link to="/reading-log" className="text-gray-700 hover:text-bookclub-primary">
+                <Link 
+                  to="/reading-log" 
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
+                >
                   Reading Log
                 </Link>
               </>
@@ -48,21 +57,24 @@ const Navbar: React.FC = () => {
             {user ? (
               <>
                 {isAdmin && (
-                  <Button variant="outline" asChild>
-                    <Link to="/admin">Admin</Link>
+                  <Button variant="outline" asChild className="border-blue-600 text-blue-600 hover:bg-blue-50">
+                    <Link to="/admin">Admin Panel</Link>
                   </Button>
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" className="hover:bg-blue-50">
                       <User className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem className="font-medium">
+                  <DropdownMenuContent align="end" className="w-56">
+                    <div className="px-2 py-1.5 text-sm font-medium text-gray-900">
                       {userProfile?.name || user.email}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleSignOut}>
+                    </div>
+                    <div className="px-2 py-1.5 text-xs text-gray-500">
+                      {user.email}
+                    </div>
+                    <DropdownMenuItem onClick={handleSignOut} className="text-red-600 hover:text-red-700 hover:bg-red-50">
                       <LogOut className="h-4 w-4 mr-2" />
                       Sign Out
                     </DropdownMenuItem>
@@ -70,7 +82,7 @@ const Navbar: React.FC = () => {
                 </DropdownMenu>
               </>
             ) : (
-              <Button asChild>
+              <Button asChild className="bg-blue-600 hover:bg-blue-700">
                 <Link to="/login">Sign In</Link>
               </Button>
             )}
